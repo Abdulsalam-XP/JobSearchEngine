@@ -15,22 +15,24 @@ slash and with an optional job ID for apply (`apply 1a2b3c4d5e6f7a8b`), run that
 Wherever a workflow says "ask a multiple-choice question", use your tool's question feature if it has
 one; otherwise list the options as text and wait for the answer.
 
-Workflows are decoupled: each one asks which candidate, reads its inputs from that candidate's `career.db`,
-and never assumes another workflow ran in the same session.
+Workflows are decoupled: each one reads its inputs from `candidates/me/` and never assumes another
+workflow ran in the same session.
 
-## Candidates
-The engine runs for one candidate at a time. Each lives in `candidates/<name>/` with `candidate.py`
-(search terms, salary floors, hull knobs), `profile.md`, `resume.md`, `data/`, and `reports/`. The
-active candidate is stored per machine in `.active_candidate` (gitignored). `run.py candidate` shows
-it, `run.py candidate set <name>` changes it, and `--candidate <name>` overrides it for one run.
-Every `run.py` command prints `Candidate: <display name>` as its first line; check it.
-To add a person, run the onboard workflow. Real candidate folders are gitignored in this public repo
-(only `candidates/_template/` is tracked); users who want their data synced keep it in a private fork.
+## The candidate folder
+Everything about the user lives in `candidates/me/`: `candidate.py` (search terms, salary floors, hull
+knobs), `profile.md`, `resume.md`, `data/` (the SQLite database and taste model) and `reports/`. The
+onboard workflow creates it. The folder is gitignored in this public repo (only `candidates/_template/`
+is tracked); users who want their data synced keep it in a private fork.
+
+The engine can technically hold several such folders and switch between them with
+`run.py candidate set <name>`, but that is not part of the normal flow. Never ask the user which
+candidate to use; `me` is always active. If a command complains that no candidate is active, run
+`.venv/Scripts/python run.py candidate set me` and continue.
 
 ## Git steps inside workflows
 The ingest and apply workflows contain commit-and-push steps. They exist so a candidate's database and
 cover-letter archive stay in sync across devices through a **private** remote. Before running them,
-check `git check-ignore -q candidates/<name> && echo ignored`. If it prints `ignored` (the default in
+check `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored` (the default in
 this public repo), skip every git step, say so in one line, and leave any cover letter on disk.
 Never work around the ignore rule with `git add -f`.
 
@@ -39,7 +41,7 @@ Never work around the ignore rule with `git add -f`.
   `.venv/bin/python run.py <cmd>` on macOS and Linux. The workflows below write the Windows form;
   substitute on other systems.
 - Engine mode toggle: `engine/config.py` -> `MODE = SUPER_SAIYAN_MODE | EFFICIENT_MODE`.
-- Database: `candidates/<name>/data/career.db` (SQLite, table `jobs`). Never edit it by hand; use `run.py` subcommands.
+- Database: `candidates/me/data/career.db` (SQLite, table `jobs`). Never edit it by hand; use `run.py` subcommands.
 - Tests: `.venv/Scripts/python -m pytest -q`.
 
 ## Pipeline
@@ -70,21 +72,20 @@ Never work around the ignore rule with `git add -f`.
 ## onboard
 Interview the user and build a complete candidate folder from their answers. Do NOT scrape or evaluate.
 
-0. **Time check first.** Tell the user the interview has 45 questions in 10 sections and takes roughly
+0. **Time check first.** Tell the user the interview has 44 questions in 10 sections and takes roughly
    25 to 40 minutes to answer properly, that the quality of every shortlist and cover letter depends
    on it, that they can type `save and exit` at any point and pick up later where they stopped, and
    that `edit <number>` changes any earlier answer at any time.
    Ask whether they want to do it now. Offer two alternatives if not: (a) come back later, or
    (b) a 10-minute short form where they hand over an existing CV or LinkedIn export and answer only
-   sections B, C, D and I below, with the rest extracted from the CV and gaps marked `TODO-<SLUG>:`.
+   sections B, C, D and I below, with the rest extracted from the CV and gaps marked `TODO:`.
    Proceed with whichever they pick.
-1. Ask for a short lowercase slug for the folder name (letters, digits, hyphens; e.g. `sara`).
-   - If `candidates/<slug>/onboarding_answers.md` exists, this is a resume. Tell them which sections
+1. The folder is always `candidates/me/`.
+   - If `candidates/me/onboarding_answers.md` exists, this is a resume. Tell them which sections
      are already complete and which question comes next, ask whether to continue from there or start
      over, and continue accordingly.
-   - Otherwise, if `candidates/<slug>/` already exists with a finished profile, ask whether to
-     overwrite it or pick another name.
-2. **Save after every reply.** Keep `candidates/<slug>/onboarding_answers.md` as the running record:
+   - Otherwise, if `candidates/me/` already exists with a finished profile, ask whether to overwrite it.
+2. **Save after every reply.** Keep `candidates/me/onboarding_answers.md` as the running record:
    one heading per section (A to J), one `**Qn.**` line per question with the answer beneath it, and a
    `Next: <section letter><question number>` line at the top. Rewrite the file after every user message,
    before asking the next question, so nothing is lost if the session dies. The folder is gitignored, so
@@ -102,10 +103,10 @@ Interview the user and build a complete candidate folder from their answers. Do 
      like correcting a form field, not restarting.
    - If at any point the user says `save and exit`, `stop`, `later`, `pause`, or anything equivalent:
      write the file one last time, confirm the path and the next question number, tell them to type
-     `onboard` again with the same slug to resume, and end the workflow without writing the three
+     `onboard` again to resume, and end the workflow without writing the three
      candidate files.
 4. After the last section (J), read whatever extra material they give you and use it to enrich the answers.
-5. Copy `candidates/_template/` to `candidates/<slug>/` and write the three files from the answers:
+5. Copy `candidates/_template/` to `candidates/me/` and write the three files from the answers:
    - `candidate.py`: `DISPLAY_NAME`, `SEARCH_TERMS` (8-15 title variants an employer would actually
      post), `SEARCH_LOCATIONS`, `SALARY_FLOORS_AED`, `DEFAULT_SALARY_FLOOR_AED`, `MAX_SENIORITY_LEVEL`,
      `SENIORITY_EXTRA_PATTERNS`, `EXCLUDE_TITLE_KEYWORDS`, `DOMAIN_TRACKS` (2-5 tracks with 5-15
@@ -115,90 +116,86 @@ Interview the user and build a complete candidate folder from their answers. Do 
      experience and the `## Never name` and `## Deal-breakers` sections; fill them from the answers.
      Add an `## Out of scope` section listing the role types they said they do not want.
    - `resume.md`: follow the template headings. Every bullet must be a concrete, citable fact they
-     stated. Mark anything still missing with `TODO-<SLUG>:` so apply knows not to rely on it.
+     stated. Mark anything still missing with `TODO:` so apply knows not to rely on it.
 6. Show the user all three files and offer a final review: they can correct anything in the generated
    files directly, or say `edit <question number>` to change an answer, in which case update
    `onboarding_answers.md` and regenerate the affected file. Repeat until they confirm.
-7. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
+7. Run `.venv/Scripts/python run.py candidate set me` and confirm the `Candidate: <display name>`
    line. Leave `onboarding_answers.md` in place as the record of what they said. Tell them the next
    step is ingest, then calibrate.
 
 ### Onboarding questions
-Nationality and date of birth (A5) are only used to judge visa and licence questions; never write them
+Nationality and date of birth (A4) are only used to judge visa and licence questions; never write them
 into a letter.
 
 #### A. Identity and contact
 1. Full legal name as it should appear on applications.
-2. Short folder slug (lowercase, no spaces).
-3. Email address and phone number with country code.
-4. City or area and emirate you live in.
-5. Nationality and date of birth (only used to judge visa and licence questions; never written into letters).
-6. Links: LinkedIn, portfolio, GitHub, Behance, personal site. Paste each URL or say none.
+2. Email address and phone number with country code.
+3. City or area and emirate you live in.
+4. Nationality and date of birth (only used to judge visa and licence questions; never written into letters).
+5. Links: LinkedIn, portfolio, GitHub, Behance, personal site. Paste each URL or say none.
 
 #### B. Visa, permits and availability
-7. Current UAE status: Golden Visa, employment visa, family sponsorship, visit visa, outside the UAE, other. If family or employer sponsored, who sponsors it and is it transferable?
-8. Does an employer hiring you need to pay for a residence visa or use a visa quota? What exactly is still required (for example a MOHRE work permit only)?
-9. Notice period or earliest start date. Are you already in the UAE with Emirates ID and medical done?
-10. Is your degree attested or equivalated in the UAE (MOFA, MOHESR)? State which.
-11. Professional registrations you hold or lack that employers ask for (Society of Engineers, municipality approval cards, DHA/DOH licence, teaching licence, CPA, PMP, cloud certificates, and so on). For each: held, in progress, or not eligible yet and why.
-12. UAE driving licence: yes, in progress, or no. Own car: yes or no.
+6. Current UAE status: Golden Visa, employment visa, family sponsorship, visit visa, outside the UAE, other. If family or employer sponsored, who sponsors it and is it transferable?
+7. Does an employer hiring you need to pay for a residence visa or use a visa quota? What exactly is still required (for example a MOHRE work permit only)?
+8. Notice period or earliest start date. Are you already in the UAE with Emirates ID and medical done?
+9. Is your degree attested or equivalated in the UAE (MOFA, MOHESR)? State which.
+10. Professional registrations you hold or lack that employers ask for (Society of Engineers, municipality approval cards, DHA/DOH licence, teaching licence, CPA, PMP, cloud certificates, and so on). For each: held, in progress, or not eligible yet and why.
+11. UAE driving licence: yes, in progress, or no. Own car: yes or no.
 
 #### C. What you are looking for
-13. The 3 to 5 role families you want, in priority order, with the exact job titles employers use for each (for example "Junior Architect", "Architectural Draftsman", "BIM Modeler").
-14. Role families that look adjacent but you do NOT want (for example interior design, landscape, sales engineering, pure helpdesk). Be explicit; these become hard rejections.
-15. Seniority you will accept: intern, junior, mid, senior, lead. Which is the highest you would apply to?
-16. Job title words that should always be rejected (for example "solutions architect" for a building architect, "manager" if you do not want people management).
-17. Industries or company types you prefer or refuse (consultancy, contractor, developer, agency, startup, government, and so on).
-18. Are hybrid and remote roles in scope? Remote only within the UAE, or anywhere?
+12. The 3 to 5 role families you want, in priority order, with the exact job titles employers use for each (for example "Junior Architect", "Architectural Draftsman", "BIM Modeler").
+13. Role families that look adjacent but you do NOT want (for example interior design, landscape, sales engineering, pure helpdesk). Be explicit; these become hard rejections.
+14. Seniority you will accept: intern, junior, mid, senior, lead. Which is the highest you would apply to?
+15. Job title words that should always be rejected (for example "solutions architect" for a building architect, "manager" if you do not want people management).
+16. Industries or company types you prefer or refuse (consultancy, contractor, developer, agency, startup, government, and so on).
+17. Are hybrid and remote roles in scope? Remote only within the UAE, or anywhere?
 
 #### D. Location and money
-19. Which emirates can you commute to daily, given where you live and whether you drive?
-20. Minimum monthly salary in AED for each: Dubai, Abu Dhabi, Sharjah, Ajman, other emirates, remote. Say what the floor covers (transport, housing) so the numbers make sense.
-21. If a posting shows no salary, should it be accepted (recommended) or rejected?
-22. Any allowances or arrangements that change the floor (company transport, accommodation, commission on top of base)?
+18. Which emirates can you commute to daily, given where you live and whether you drive?
+19. Minimum monthly salary in AED for each: Dubai, Abu Dhabi, Sharjah, Ajman, other emirates, remote. Say what the floor covers (transport, housing) so the numbers make sense.
+20. If a posting shows no salary, should it be accepted (recommended) or rejected?
+21. Any allowances or arrangements that change the floor (company transport, accommodation, commission on top of base)?
 
 #### E. Education
-23. Every degree or diploma: title, major, institution, city and country, graduation date, grade or GPA if strong.
-24. Relevant coursework, thesis or graduation project: topic, scale, tools used, any grade or award.
-25. Courses, bootcamps and certificates with the issuing body and date. Only ones you actually hold.
-26. Academic awards, competitions, scholarships, dean's list.
+22. Every degree or diploma: title, major, institution, city and country, graduation date, grade or GPA if strong.
+23. Relevant coursework, thesis or graduation project: topic, scale, tools used, any grade or award.
+24. Courses, bootcamps and certificates with the issuing body and date. Only ones you actually hold.
+25. Academic awards, competitions, scholarships, dean's list.
 
 #### F. Work history (repeat for every job, internship and freelance engagement)
-27. Employer name, city, your title, start and end dates, hours or working days if part-time or short.
-28. Team and reporting line: who you reported to and what the department did.
-29. For each project or engagement you touched: what the building, product or system was, its scale (floors, users, revenue, headcount, square metres), your exact contribution, the tools used, and the outcome (approved, shipped, launched, saved X, delivered on time).
-30. Anything measurable: number of drawings, apps shipped, users served, tickets closed, uptime, money saved, percentage improvements.
-31. Any client-facing, authority-facing or site-facing work: what you did in front of clients, government reviewers or contractors.
+26. Employer name, city, your title, start and end dates, hours or working days if part-time or short.
+27. Team and reporting line: who you reported to and what the department did.
+28. For each project or engagement you touched: what the building, product or system was, its scale (floors, users, revenue, headcount, square metres), your exact contribution, the tools used, and the outcome (approved, shipped, launched, saved X, delivered on time).
+29. Anything measurable: number of drawings, apps shipped, users served, tickets closed, uptime, money saved, percentage improvements.
+30. Any client-facing, authority-facing or site-facing work: what you did in front of clients, government reviewers or contractors.
 
 #### G. Skills and tools
-32. Every software tool you use professionally, grouped: primary daily tools, competent secondary tools, tools you are currently learning. Be honest about the level; the assistant will match postings to this list.
-33. Programming languages, frameworks, platforms or engineering methods, with level (professional, working, basic).
-34. Hands-on or field skills (site surveying, lab work, equipment, hardware, vehicles, instruments).
-35. Tools you do not know but are willing to pick up on the job; these let the assistant approve postings that list them as "an advantage".
-36. Spoken languages with level (native, fluent, conversational, basic). For each, say whether postings that require it are a plus, neutral, or a blocker.
+31. Every software tool you use professionally, grouped: primary daily tools, competent secondary tools, tools you are currently learning. Be honest about the level; the assistant will match postings to this list.
+32. Programming languages, frameworks, platforms or engineering methods, with level (professional, working, basic).
+33. Hands-on or field skills (site surveying, lab work, equipment, hardware, vehicles, instruments).
+34. Tools you do not know but are willing to pick up on the job; these let the assistant approve postings that list them as "an advantage".
+35. Spoken languages with level (native, fluent, conversational, basic). For each, say whether postings that require it are a plus, neutral, or a blocker.
 
 #### H. Personal projects and portfolio
-37. Up to five projects that are not part of a job: name, what it does or is, the stack or tools, scale or audience, any award, link if public.
-38. Which projects are you proudest of and why? Which should a cover letter lead with?
+36. Up to five projects that are not part of a job: name, what it does or is, the stack or tools, scale or audience, any award, link if public.
+37. Which projects are you proudest of and why? Which should a cover letter lead with?
 
 #### I. How the assistant should pitch you
-39. Your three strongest selling points in one sentence each.
-40. Your biggest gap versus typical postings (years of experience, missing certificate, no licence) and how you want it framed. The assistant never apologises for a gap; tell it what to offer instead.
-41. Sensitive names to never write in a letter (previous employer under NDA, clients, supervisors, specific schools or sites), each with how to describe it by scale and function instead.
-42. Claims the assistant must never make about you (for example "no paperwork needed", "holds registration", "willing to relocate abroad").
-43. Deal-breakers: commission-only pay, roles that ask you to pay for visas or training, unnamed "confidential client" agencies, shift work, travel, anything else.
-44. Tone preferences for letters: plain, formal, warm; British or American spelling; anything you dislike in cover letters.
+38. Your three strongest selling points in one sentence each.
+39. Your biggest gap versus typical postings (years of experience, missing certificate, no licence) and how you want it framed. The assistant never apologises for a gap; tell it what to offer instead.
+40. Sensitive names to never write in a letter (previous employer under NDA, clients, supervisors, specific schools or sites), each with how to describe it by scale and function instead.
+41. Claims the assistant must never make about you (for example "no paperwork needed", "holds registration", "willing to relocate abroad").
+42. Deal-breakers: commission-only pay, roles that ask you to pay for visas or training, unnamed "confidential client" agencies, shift work, travel, anything else.
+43. Tone preferences for letters: plain, formal, warm; British or American spelling; anything you dislike in cover letters.
 
 #### J. Anything else
-45. Drop anything that helps: an existing CV or resume in any format, a portfolio PDF, past cover letters, reference letters, a job posting you loved or hated, screenshots of your work, a LinkedIn export, a list of companies you want to target, or notes on things this questionnaire did not ask. The assistant reads all of it and folds it into the three files, and asks before assuming anything the material does not state.
+44. Drop anything that helps: an existing CV or resume in any format, a portfolio PDF, past cover letters, reference letters, a job posting you loved or hated, screenshots of your work, a LinkedIn export, a list of companies you want to target, or notes on things this questionnaire did not ask. The assistant reads all of it and folds it into the three files, and asks before assuming anything the material does not state.
 
 ## ingest
 Run Phase 1 + Phase 2 of the pipeline. Do NOT evaluate anything.
 
-0. **Pick the candidate (always ask).** Run `.venv/Scripts/python run.py candidate` to list the
-   valid names, then ask the user which candidate to ingest for using a multiple-choice question.
-   Run `.venv/Scripts/python run.py candidate set <name>`. Every later step runs for that candidate
-   and every path below is relative to `candidates/<name>/`.
+0. Every path below is relative to `candidates/me/`.
 1. Execute `.venv/Scripts/python run.py -v ingest`. It may take several minutes (jobspy hits
    LinkedIn/Indeed/Bayt for every search term × location). If jobspy is rate-limited, re-run with
    `--skip-boards` so at least the direct ATS boards land.
@@ -209,11 +206,11 @@ Run Phase 1 + Phase 2 of the pipeline. Do NOT evaluate anything.
    - jobs now pending evaluate
 3. If quarantine looks wrong for a specific job (e.g. "Golden Visa" flagged), show the offending
    `risk_reasons` line and suggest the regex fix in `engine/uae_detector.py`. Do not apply it unasked.
-4. **Commit and push (private forks only).** First run `git check-ignore -q candidates/<name> && echo ignored`.
+4. **Commit and push (private forks only).** First run `git check-ignore -q candidates/me && echo ignored`.
    If it prints `ignored`, skip this step and say so in one line. Otherwise run:
    ```
    git add -A
-   git commit -m "Ingest <name> <YYYY-MM-DD>: <N> clean, <M> quarantined"
+   git commit -m "Ingest <YYYY-MM-DD>: <N> clean, <M> quarantined"
    git push
    ```
    Confirm the push succeeded in your report. When the folder is tracked, this is mandatory after every
@@ -222,15 +219,12 @@ Run Phase 1 + Phase 2 of the pipeline. Do NOT evaluate anything.
 ## calibrate
 Run once per candidate, after the first ingest has populated `career.db`.
 
-0. **Pick the candidate (always ask).** Run `.venv/Scripts/python run.py candidate` to list the
-   valid names, then ask the user which candidate to calibrate for using a multiple-choice question.
-   Run `.venv/Scripts/python run.py candidate set <name>`. State the candidate's display name in your
-   reply. Every path below is relative to `candidates/<name>/`.
+0. Every path below is relative to `candidates/me/`.
 1. Tell the user this is interactive and they will answer `A`, `B`, or `S` (skip) five times.
 2. Suggest they run `.venv/Scripts/python run.py calibrate 5` themselves so the prompts land in their
    terminal (in Claude Code, prefix it with `!`). If they prefer, you may run it, but stdin must be
    attached to their terminal.
-3. After it finishes, confirm `candidates/<name>/data/taste_profile.json` exists and echo the
+3. After it finishes, confirm `candidates/me/data/taste_profile.json` exists and echo the
    "You lean towards / away from" term lists it printed.
 4. Explain that evaluate will now show a `Taste:` score per job and uses it only as a tie-breaker.
    Re-running calibrate later overwrites the profile with a fresh session.
@@ -238,10 +232,7 @@ Run once per candidate, after the first ingest has populated `career.db`.
 ## evaluate
 You are the judge. Follow these steps exactly.
 
-0. **Pick the candidate (always ask).** Run `.venv/Scripts/python run.py candidate` to list the
-   valid names, then ask the user which candidate to evaluate for using a multiple-choice question.
-   Run `.venv/Scripts/python run.py candidate set <name>`. State the candidate's display name in your
-   reply. Every path below is relative to `candidates/<name>/`.
+0. Every path below is relative to `candidates/me/`.
 1. Run `.venv/Scripts/python run.py pending`. The output is mode-aware
    (`engine/config.py` MODE): SUPER_SAIYAN prints every survivor; EFFICIENT prints the top 15 by
    local semantic similarity. Do not re-rank or re-filter the batch yourself.
@@ -254,7 +245,7 @@ You are the judge. Follow these steps exactly.
    - Use the `Taste:` score, if present, only to break ties.
    - Vocabulary mismatch is not a rejection reason: "Deep Learning" satisfies "Machine Learning",
      "TypeScript/Next.js" satisfies "React", etc.
-3. Overwrite `candidates/<name>/reports/daily_shortlist.md` with:
+3. Overwrite `candidates/me/reports/daily_shortlist.md` with:
    ```
    # Daily Shortlist - <YYYY-MM-DD>
    Candidate: <display name>
@@ -279,13 +270,10 @@ You are the judge. Follow these steps exactly.
 ## apply <ID>
 Write a hyper-targeted cover letter for one job and mark it applied.
 
-0. **Pick the candidate (always ask).** Run `.venv/Scripts/python run.py candidate` to list the
-   valid names, then ask the user which candidate to apply for using a multiple-choice question.
-   Run `.venv/Scripts/python run.py candidate set <name>`. State the candidate's display name in your
-   reply. Every path below is relative to `candidates/<name>/`.
+0. Every path below is relative to `candidates/me/`.
 1. Run `.venv/Scripts/python run.py show <ID>`. If it reports an unknown id, stop and say so.
 2. Read the candidate's `resume.md` and `profile.md`.
-3. Write `candidates/<name>/reports/cover_letters/YYYY-MM-DD-<job-id>-<company-slug>.md` (using
+3. Write `candidates/me/reports/cover_letters/YYYY-MM-DD-<job-id>-<company-slug>.md` (using
    today's date, the full job ID, and lower-kebab-case company name). The file MUST start with this
    exact header block:
    ```markdown
@@ -314,17 +302,17 @@ Write a hyper-targeted cover letter for one job and mark it applied.
      course titles that are not written in `resume.md`.
 4. Run `.venv/Scripts/python run.py applied <ID>` (one ID per call) and confirm the status is now `applied`.
 5. **Commit, push, then remove the letter locally (private forks only).** First run
-   `git check-ignore -q candidates/<name> && echo ignored`. If it prints `ignored`, skip this step,
+   `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored`, skip this step,
    leave the letter on disk, and say so in one line. Otherwise run:
    ```
    git add -A
-   git commit -m "Apply <name>/<ID>: <company> - <title>"
+   git commit -m "Apply <ID>: <company> - <title>"
    git push
-   git update-index --skip-worktree candidates/<name>/reports/cover_letters/<file>
-   rm candidates/<name>/reports/cover_letters/<file>
+   git update-index --skip-worktree candidates/me/reports/cover_letters/<file>
+   rm candidates/me/reports/cover_letters/<file>
    ```
    Confirm the push succeeded and the local file is gone in your reply. The skip-worktree flag stops
    git from staging the deletion, so the letter stays on the remote while the local folder stays empty.
    Never commit a deletion of a cover letter. To read an old letter, use
-   `git show origin/main:candidates/<name>/reports/cover_letters/<file>`.
+   `git show origin/main:candidates/me/reports/cover_letters/<file>`.
 6. Reply with the file path and the full letter text.

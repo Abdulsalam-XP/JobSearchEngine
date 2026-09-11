@@ -1,4 +1,4 @@
-"""Copy this folder to candidates/<name>/ and edit. Uppercase names override engine/config.py."""
+"""Filled in by the onboard workflow into candidates/me/. Uppercase names override engine/config.py."""
 
 DISPLAY_NAME = "<Full Name>"
 

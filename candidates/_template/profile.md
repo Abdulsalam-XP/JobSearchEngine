@@ -1,6 +1,6 @@
 # Candidate Profile - <Full Name>
 
-Copy the whole `_template/` folder to `candidates/<name>/` and fill this in. Everything under `candidates/` except `_template/` is gitignored, so your data never reaches a public remote.
+The onboard workflow copies this folder to `candidates/me/` and fills it in from your answers. Everything under `candidates/` except `_template/` is gitignored, so your data never reaches a public remote.
 
 ## Core Focus (all equally desirable)
 1. **<Focus area 1, e.g. Full-Stack Web & Mobile Development>**

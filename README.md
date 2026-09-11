@@ -7,8 +7,8 @@ dedupe; a scam and ghost-job safety net; optional semantic ranking). The assista
 reads every surviving posting against your `profile.md`, writes a ranked daily shortlist, and drafts a
 targeted cover letter for each job you choose.
 
-It supports several candidates in one checkout, one active at a time, and works for tech and
-non-tech fields alike (the per-candidate knobs decide what counts as "in domain").
+It works for tech and non-tech fields alike: your own search terms, salary floors and domain keywords
+decide what counts as "in domain".
 
 Full design notes are in `SPEC.md`. Every rule and workflow the assistant follows is in one file, `AGENTS.md`.
 
@@ -47,21 +47,15 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
    `torch` and `sentence-transformers` are the heavy entries in `requirements.txt`. Remove those two lines
    before installing if you only intend to use SUPER_SAIYAN mode.
 
-3. **Create your candidate folder.** Open your AI assistant in the repo folder and type `onboard`.
+3. **Tell it about yourself.** Open your AI assistant in the repo folder and type `onboard`.
    It first tells you how long the interview takes and asks whether you want to do it now, then walks
    you through the questions section by section (identity, visa status, target roles, salary floors,
    education, work history, tools, projects, how to pitch you) and asks for any CV, portfolio or links
    you already have. Your answers are saved after every reply, so you can type `save and exit` at any
    point and run `onboard` again later to continue, and `edit <question number>` changes any earlier
-   answer. At the end it writes the three candidate files and activates the candidate.
+   answer. At the end it writes the three files below into `candidates/me/` and you are ready to go.
 
-   The manual way: copy the template and rename it to a short lowercase slug.
-
-   ```
-   cp -r candidates/_template candidates/<name>
-   ```
-
-   Either way, the folder ends up with three files:
+   The folder holds three files:
 
    | File | What it is | Who reads it |
    |---|---|---|
@@ -69,28 +63,17 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
    | `profile.md` | Your focus areas, stack, languages, location and salary table, strategic advantage, things never to name, deal-breakers | the assistant, during evaluate and apply |
    | `resume.md` | Concrete achievements with tools and metrics | the assistant, during apply (the only source of claims a cover letter may make) |
 
-   Every placeholder is wrapped in `<angle brackets>`. Replace all of them. The assistant will refuse to invent
-   credentials or achievements that are not in `resume.md`, so the more concrete that file is, the better
-   the letters.
+   You can edit these files by hand at any time. The assistant will refuse to invent credentials or
+   achievements that are not in `resume.md`, so the more concrete that file is, the better the letters.
 
-4. **Activate the candidate.**
-
-   ```
-   .venv/Scripts/python run.py candidate set <name>      # Windows
-   .venv/bin/python run.py candidate set <name>          # macOS / Linux
-   ```
-
-   The active name is stored in a gitignored `.active_candidate` file, so each machine can have its own.
-   Every command prints `Candidate: <display name>` as its first line; check it.
-
-5. **Pick an engine mode** in `engine/config.py`:
+4. **Pick an engine mode** in `engine/config.py`:
 
    - `SUPER_SAIYAN_MODE` (default): every posting that survives the safety net goes to the assistant.
      Best coverage, more tokens. Suits a generous plan (for example Claude Max).
    - `EFFICIENT_MODE`: a local SentenceTransformer ranks survivors against `profile.md` and only the top 15
      go to the assistant. Suits a tighter plan (for example Claude Pro).
 
-6. **Run the tests** to confirm the install:
+5. **Run the tests** to confirm the install:
 
    ```
    .venv/Scripts/python -m pytest -q
@@ -98,16 +81,15 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
 
 ## Daily workflow
 
-Open your AI assistant in the repo folder and type a workflow name (a leading slash is fine too). Each one asks which candidate to run
-for, then works only inside that candidate's folder.
+Open your AI assistant in the repo folder and type a workflow name (a leading slash is fine too).
 
 | Command | What happens |
 |---|---|
-| `onboard` | Run once per person. Interviews you, builds `candidates/<name>/` from the answers, and activates it. |
-| `ingest` | Scrapes every search term × location, dedupes, applies the domain hull and the scam/ghost safety net, stores clean jobs in `candidates/<name>/data/career.db`. Takes several minutes. |
+| `onboard` | Run once. Interviews you and builds `candidates/me/` from the answers. |
+| `ingest` | Scrapes every search term × location, dedupes, applies the domain hull and the scam/ghost safety net, stores clean jobs in `candidates/me/data/career.db`. Takes several minutes. |
 | `calibrate` | Run once after your first ingest. Five pairwise A/B questions in the terminal teach a Bradley-Terry taste model that later acts as a tie-breaker. |
-| `evaluate` | The assistant reads every pending job against `profile.md` and writes `candidates/<name>/reports/daily_shortlist.md`, a ranked table with fit scores, one-line reasons and risks, plus a rejected list. Decisions are persisted so nothing is re-read tomorrow. |
-| `apply <ID>` | The assistant reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/<name>/reports/cover_letters/` and marks the job applied. |
+| `evaluate` | The assistant reads every pending job against `profile.md` and writes `candidates/me/reports/daily_shortlist.md`, a ranked table with fit scores, one-line reasons and risks, plus a rejected list. Decisions are persisted so nothing is re-read tomorrow. |
+| `apply <ID>` | The assistant reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/me/reports/cover_letters/` and marks the job applied. |
 
 Underneath, everything is `run.py` subcommands, so you can also drive it by hand:
 
@@ -120,11 +102,9 @@ python run.py shortlist <ID> [...]   mark as shortlisted
 python run.py evaluated <ID> [...]   mark as evaluated without shortlisting
 python run.py applied <ID>           mark as applied
 python run.py stats                  database counters
-python run.py candidate [set NAME]   show or change the active candidate
 ```
 
-Add `-v` before the subcommand for per-job reasons, or `--candidate NAME` to override the active
-candidate for one run.
+Add `-v` before the subcommand for per-job reasons.
 
 ## How the filtering works
 
@@ -154,7 +134,7 @@ workflows written out step by step. Most tools read it on their own.
 The assistant must be able to read files and run shell commands in the repo folder; a plain chat window
 cannot drive the engine. Wherever a workflow says to ask a multiple-choice question, tools without a
 question feature list the options as text and wait. The commit-and-push steps inside `ingest` and `apply`
-skip themselves when your candidate folder is gitignored, which is the default here; they only run if you
+skip themselves when `candidates/me/` is gitignored, which is the default here; they only run if you
 keep your data in a private fork.
 
 ## Free option: Ollama
@@ -260,7 +240,7 @@ not pick up `AGENTS.md` by itself, start the session with "Read `AGENTS.md` and 
 ### 6. Run it
 
 ```
-onboard          # once: builds candidates/<name>/ from your answers
+onboard          # once: builds candidates/me/ from your answers
 ingest           # daily: several minutes of scraping, no model involved
 calibrate        # once, after the first ingest
 evaluate         # daily: the local model judges the top N
@@ -284,8 +264,3 @@ apply <ID>       # per job you choose
   remote.
 - Cover letters name real companies and contain your contact details. Keep them in a private remote.
 - The engine never submits applications. It writes letters; you send them.
-
-## Adding a second person
-
-Copy `candidates/_template/` again under a new name and fill it in. The two candidates share nothing:
-separate database, reports, taste model and hull knobs. Switch with `run.py candidate set <name>`.

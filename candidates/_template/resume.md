@@ -2,7 +2,7 @@
 
 **<Headline, e.g. Full-Stack Engineer & AI Specialist>** | <City, Country> | <Visa status, e.g. UAE Golden Visa Holder> | <email> | <phone>
 
-Fill this in. It lives in your gitignored `candidates/<name>/` folder and is the only source
+Fill this in. It lives in your gitignored `candidates/me/` folder and is the only source
 `/apply` uses for concrete achievements, so every bullet here should be something a cover letter can cite.
 
 ## Summary
