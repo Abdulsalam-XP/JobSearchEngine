@@ -1,24 +1,22 @@
 # UAE Autonomous Career Engine
 
-A local, zero-subscription job discovery and screening agent for the UAE market that runs inside
-[Claude Code](https://claude.com/claude-code). Python does the deterministic work (scraping LinkedIn,
-Indeed, Bayt and direct ATS boards; fuzzy dedupe; a scam and ghost-job safety net; optional semantic
-ranking). Claude does the judging: it reads every surviving posting against your `profile.md`, writes a
-ranked daily shortlist, and drafts a targeted cover letter for each job you choose.
+A local, zero-subscription job discovery and screening agent for the UAE market, driven by whatever AI
+coding assistant you already use (Claude Code, Codex CLI, Cursor, Windsurf, Gemini CLI, Copilot agent
+mode). Python does the deterministic work (scraping LinkedIn, Indeed, Bayt and direct ATS boards; fuzzy
+dedupe; a scam and ghost-job safety net; optional semantic ranking). The assistant does the judging: it
+reads every surviving posting against your `profile.md`, writes a ranked daily shortlist, and drafts a
+targeted cover letter for each job you choose.
 
 It supports several candidates in one checkout, one active at a time, and works for tech and
 non-tech fields alike (the per-candidate knobs decide what counts as "in domain").
 
-Full design notes are in `SPEC.md`. The operating rules Claude follows are in `CLAUDE.md` and the
-slash commands in `.claude/commands/`.
+Full design notes are in `SPEC.md`. Every rule and workflow the assistant follows is in one file, `AGENTS.md`.
 
 ## Requirements
 
 - Windows, macOS or Linux with Python 3.11 or newer (developed on 3.12).
 - An AI coding assistant that can read files and run shell commands in the repo folder.
-  [Claude Code](https://claude.com/claude-code) is the primary target and gets the workflows as slash
-  commands; Codex CLI, Cursor, Windsurf, Gemini CLI and Copilot agent mode also work (see
-  "Using another AI assistant" below). There is no other UI.
+  [Claude Code](https://claude.com/claude-code) and the others read the same `AGENTS.md`; see "Which assistant" below. There is no other UI.
 - Git.
 - Optional: about 2 GB of disk for `torch` and `sentence-transformers` if you want EFFICIENT mode. Without
   them the ranker falls back to TF-IDF with a warning and everything still works.
@@ -49,10 +47,10 @@ slash commands in `.claude/commands/`.
    `torch` and `sentence-transformers` are the heavy entries in `requirements.txt`. Remove those two lines
    before installing if you only intend to use SUPER_SAIYAN mode.
 
-3. **Create your candidate folder.** The easy way: open Claude Code in the repo and run `/onboard`.
+3. **Create your candidate folder.** The easy way: open your AI assistant in the repo folder and type `onboard`.
    It interviews you with the questionnaire below, section by section, then writes the three candidate
    files from your answers and activates the candidate. You can also paste the whole questionnaire
-   into Claude with your answers, or answer it in a text file and hand Claude the path.
+   into the assistant with your answers, or answer it in a text file and hand it the path.
 
    The manual way: copy the template and rename it to a short lowercase slug.
 
@@ -65,10 +63,10 @@ slash commands in `.claude/commands/`.
    | File | What it is | Who reads it |
    |---|---|---|
    | `candidate.py` | Search terms, locations, salary floors, seniority cap, domain keyword tracks, direct ATS boards | Python (scraper and hull filter) |
-   | `profile.md` | Your focus areas, stack, languages, location and salary table, strategic advantage, things never to name, deal-breakers | Claude, during `/evaluate` and `/apply` |
-   | `resume.md` | Concrete achievements with tools and metrics | Claude, during `/apply` (the only source of claims a cover letter may make) |
+   | `profile.md` | Your focus areas, stack, languages, location and salary table, strategic advantage, things never to name, deal-breakers | the assistant, during evaluate and apply |
+   | `resume.md` | Concrete achievements with tools and metrics | the assistant, during apply (the only source of claims a cover letter may make) |
 
-   Every placeholder is wrapped in `<angle brackets>`. Replace all of them. Claude will refuse to invent
+   Every placeholder is wrapped in `<angle brackets>`. Replace all of them. The assistant will refuse to invent
    credentials or achievements that are not in `resume.md`, so the more concrete that file is, the better
    the letters.
 
@@ -84,10 +82,10 @@ slash commands in `.claude/commands/`.
 
 5. **Pick an engine mode** in `engine/config.py`:
 
-   - `SUPER_SAIYAN_MODE` (default): every posting that survives the safety net goes to Claude. Best
-     coverage, more tokens. Suits a Claude Max plan.
+   - `SUPER_SAIYAN_MODE` (default): every posting that survives the safety net goes to the assistant.
+     Best coverage, more tokens. Suits a generous plan (for example Claude Max).
    - `EFFICIENT_MODE`: a local SentenceTransformer ranks survivors against `profile.md` and only the top 15
-     go to Claude. Suits a Claude Pro plan.
+     go to the assistant. Suits a tighter plan (for example Claude Pro).
 
 6. **Run the tests** to confirm the install:
 
@@ -97,8 +95,8 @@ slash commands in `.claude/commands/`.
 
 ## Onboarding questionnaire
 
-This is what `/onboard` asks. Answer every line; "none" or "not applicable" is a valid answer, a
-blank is not. Claude writes `candidate.py`, `profile.md` and `resume.md` from these answers and nothing
+This is what the onboard workflow asks. Answer every line; "none" or "not applicable" is a valid answer, a
+blank is not. The assistant writes `candidate.py`, `profile.md` and `resume.md` from these answers and nothing
 else, so anything you leave out cannot appear in a cover letter.
 
 ### A. Identity and contact
@@ -168,16 +166,16 @@ else, so anything you leave out cannot appear in a cover letter.
 
 ## Daily workflow
 
-Open Claude Code in the repo folder and use the slash commands. Each one asks which candidate to run
+Open your AI assistant in the repo folder and type a workflow name (a leading slash is fine too). Each one asks which candidate to run
 for, then works only inside that candidate's folder.
 
 | Command | What happens |
 |---|---|
-| `/onboard` | Run once per person. Interviews you with the questionnaire above, builds `candidates/<name>/` from the answers, and activates it. |
-| `/ingest` | Scrapes every search term × location, dedupes, applies the domain hull and the scam/ghost safety net, stores clean jobs in `candidates/<name>/data/career.db`. Takes several minutes. |
-| `/calibrate` | Run once after your first ingest. Five pairwise A/B questions in the terminal teach a Bradley-Terry taste model that later acts as a tie-breaker. |
-| `/evaluate` | Claude reads every pending job against `profile.md` and writes `candidates/<name>/reports/daily_shortlist.md`, a ranked table with fit scores, one-line reasons and risks, plus a rejected list. Decisions are persisted so nothing is re-read tomorrow. |
-| `/apply <ID>` | Claude reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/<name>/reports/cover_letters/` and marks the job applied. |
+| `onboard` | Run once per person. Interviews you with the questionnaire above, builds `candidates/<name>/` from the answers, and activates it. |
+| `ingest` | Scrapes every search term × location, dedupes, applies the domain hull and the scam/ghost safety net, stores clean jobs in `candidates/<name>/data/career.db`. Takes several minutes. |
+| `calibrate` | Run once after your first ingest. Five pairwise A/B questions in the terminal teach a Bradley-Terry taste model that later acts as a tie-breaker. |
+| `evaluate` | The assistant reads every pending job against `profile.md` and writes `candidates/<name>/reports/daily_shortlist.md`, a ranked table with fit scores, one-line reasons and risks, plus a rejected list. Decisions are persisted so nothing is re-read tomorrow. |
+| `apply <ID>` | The assistant reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/<name>/reports/cover_letters/` and marks the job applied. |
 
 Underneath, everything is `run.py` subcommands, so you can also drive it by hand:
 
@@ -208,24 +206,23 @@ candidate for one run.
    fails open: no salary listed means acceptable.
 5. **Judgement**: Claude, guided by `profile.md`. Years of experience are never a hard blocker on their own.
 
-## Using another AI assistant
+## Which assistant
 
-The rules the assistant follows live in `AGENTS.md`, and the five workflows are plain step-by-step
-files in `.claude/commands/`. Nothing in them is Claude-specific except the slash-command shortcut.
+Everything the assistant needs is in one file, `AGENTS.md`: the rules, the pipeline, and the five
+workflows written out step by step. Most tools read it on their own.
 
-| Tool | What it reads automatically | How to run a workflow |
+| Tool | Reads `AGENTS.md` automatically? | What to do |
 |---|---|---|
-| Claude Code | `CLAUDE.md` (which imports `AGENTS.md`) | `/onboard`, `/ingest`, `/calibrate`, `/evaluate`, `/apply <ID>` |
-| Codex CLI, Cursor, Windsurf, Copilot agent mode, most others | `AGENTS.md` | Type the workflow name: `onboard`, `ingest`, `calibrate`, `evaluate`, `apply <ID>`. The assistant opens `.claude/commands/<name>.md` and follows it. |
-| Gemini CLI | `GEMINI.md` (which imports `AGENTS.md`) | Same as above: type the workflow name. |
-| Anything else | Nothing | Start the session with: "Read `AGENTS.md` and follow it. When I type a workflow name, follow the matching file in `.claude/commands/`." |
+| Codex CLI, Cursor, Windsurf, Copilot agent mode, most others | Yes | Nothing. Type a workflow name. |
+| Claude Code | Through `CLAUDE.md`, a one-line file that imports `AGENTS.md` | Nothing. Type a workflow name; `/onboard` style also works. |
+| Gemini CLI | No (it looks for `GEMINI.md`) | Either start the session with "Read `AGENTS.md` and follow it", or set `context.fileName` to `AGENTS.md` in `.gemini/settings.json`. |
+| Anything else | No | Start the session with: "Read `AGENTS.md` and follow it. When I type a workflow name, run that workflow." |
 
-Two things to know when not using Claude Code:
-
-- Wherever a workflow says to ask a multiple-choice question, the assistant lists the options as text and
-  waits for you to answer.
-- The commit-and-push steps inside `ingest` and `apply` are skipped automatically when your candidate
-  folder is gitignored, which is the default here. They only run if you keep your data in a private fork.
+The assistant must be able to read files and run shell commands in the repo folder; a plain chat window
+cannot drive the engine. Wherever a workflow says to ask a multiple-choice question, tools without a
+question feature list the options as text and wait. The commit-and-push steps inside `ingest` and `apply`
+skip themselves when your candidate folder is gitignored, which is the default here; they only run if you
+keep your data in a private fork.
 
 ## Privacy
 
