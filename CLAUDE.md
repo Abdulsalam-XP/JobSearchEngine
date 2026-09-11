@@ -34,6 +34,11 @@ person, copy `candidates/_template/`. Real candidate folders are gitignored in t
 Commands are decoupled: each one asks which candidate, reads its inputs from that candidate's `career.db`,
 and never assumes another command ran in the same session. Paths below are relative to `candidates/<name>/`.
 
+### `/onboard`  (run once per new person, before anything else)
+0. Ask for a folder slug, then interview the user with the questionnaire in `README.md`, section by section.
+1. Ask for extra material (existing CV, portfolio, LinkedIn, GitHub) and fold it in.
+2. Copy `candidates/_template/` to `candidates/<slug>/`, write `candidate.py`, `profile.md`, `resume.md` from the answers only, mark gaps `TODO-<SLUG>:`, show the files for confirmation, then `run.py candidate set <slug>`.
+
 ### `/ingest`
 0. Always ask which candidate (multiple choice), then `run.py candidate set <name>`.
 1. Run `.venv/Scripts/python run.py ingest` (add `-v` for per-job reasons).
