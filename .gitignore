@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.active_candidate
+
+# Real candidate data (profiles, resumes, databases, reports, cover letters) never goes public.
+candidates/*
+!candidates/_template/
