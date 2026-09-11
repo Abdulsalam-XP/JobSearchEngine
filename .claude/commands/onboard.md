@@ -15,7 +15,7 @@ Interview the user and build a complete candidate folder from their answers. Do 
      `SENIORITY_EXTRA_PATTERNS`, `EXCLUDE_TITLE_KEYWORDS`, `DOMAIN_TRACKS` (2-5 tracks with 5-15
      lowercase keywords each, drawn from the titles and stack they gave), and `ATS_BOARDS` (leave
      empty unless they named companies with public Greenhouse/Lever/Ashby/Workable boards).
-   - `profile.md`: follow the template headings exactly. Keep the CRITICAL CLAUDE RULE and the
+   - `profile.md`: follow the template headings exactly. Keep the CRITICAL RULE about years of experience and the
      `## Never name` and `## Deal-breakers` sections; fill them from the answers. Add an
      `## Out of scope` section listing the role types they said they do not want.
    - `resume.md`: follow the template headings. Every bullet must be a concrete, citable fact they

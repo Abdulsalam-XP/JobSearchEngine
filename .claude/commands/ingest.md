@@ -20,10 +20,11 @@ Run Phase 1 + Phase 2 of the pipeline. Do NOT evaluate anything.
    - jobs now pending `/evaluate`
 3. If quarantine looks wrong for a specific job (e.g. "Golden Visa" flagged), show the offending
    `risk_reasons` line and suggest the regex fix in `engine/uae_detector.py`. Do not apply it unasked.
-4. **Commit and push.** Run:
+4. **Commit and push (private forks only).** First run `git check-ignore -q candidates/<name> && echo ignored`.
+   If it prints `ignored`, skip this step and say so in one line. Otherwise run:
    ```
    git add -A
    git commit -m "Ingest <name> <YYYY-MM-DD>: <N> clean, <M> quarantined"
    git push
    ```
-   Confirm the push succeeded in your report. This is mandatory after every ingest, partial or not.
+   Confirm the push succeeded in your report. When the folder is tracked, this is mandatory after every ingest, partial or not.

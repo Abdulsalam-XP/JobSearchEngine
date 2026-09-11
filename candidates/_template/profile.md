@@ -22,7 +22,7 @@ Copy the whole `_template/` folder to `candidates/<name>/` and fill this in. Eve
 
 ## Experience Philosophy
 - **Level:** <Junior / Mid / Senior>. <Degree, institution, graduation date> + <internships / freelance summary>.
-- **CRITICAL CLAUDE RULE:** Do NOT treat "years of experience" as a hard blocker.
+- **CRITICAL RULE:** Do NOT treat "years of experience" as a hard blocker.
   If a posting asks for 2-4 years but the core tech stack aligns, **approve it**.
   Only reject on experience when a posting demands 6+ years AND a leadership/architect scope.
 - **IT roles:** <State whether IT Support / Helpdesk / SysAdmin postings are desirable matches or fallbacks.>

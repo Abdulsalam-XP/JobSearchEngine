@@ -15,8 +15,10 @@ slash commands in `.claude/commands/`.
 ## Requirements
 
 - Windows, macOS or Linux with Python 3.11 or newer (developed on 3.12).
-- [Claude Code](https://claude.com/claude-code) installed and signed in. The engine is driven by its
-  slash commands; there is no other UI.
+- An AI coding assistant that can read files and run shell commands in the repo folder.
+  [Claude Code](https://claude.com/claude-code) is the primary target and gets the workflows as slash
+  commands; Codex CLI, Cursor, Windsurf, Gemini CLI and Copilot agent mode also work (see
+  "Using another AI assistant" below). There is no other UI.
 - Git.
 - Optional: about 2 GB of disk for `torch` and `sentence-transformers` if you want EFFICIENT mode. Without
   them the ranker falls back to TF-IDF with a warning and everything still works.
@@ -205,6 +207,25 @@ candidate for one run.
    unnamed agencies and ghost postings. Anything at risk 50 or above is quarantined, never deleted. It
    fails open: no salary listed means acceptable.
 5. **Judgement**: Claude, guided by `profile.md`. Years of experience are never a hard blocker on their own.
+
+## Using another AI assistant
+
+The rules the assistant follows live in `AGENTS.md`, and the five workflows are plain step-by-step
+files in `.claude/commands/`. Nothing in them is Claude-specific except the slash-command shortcut.
+
+| Tool | What it reads automatically | How to run a workflow |
+|---|---|---|
+| Claude Code | `CLAUDE.md` (which imports `AGENTS.md`) | `/onboard`, `/ingest`, `/calibrate`, `/evaluate`, `/apply <ID>` |
+| Codex CLI, Cursor, Windsurf, Copilot agent mode, most others | `AGENTS.md` | Type the workflow name: `onboard`, `ingest`, `calibrate`, `evaluate`, `apply <ID>`. The assistant opens `.claude/commands/<name>.md` and follows it. |
+| Gemini CLI | `GEMINI.md` (which imports `AGENTS.md`) | Same as above: type the workflow name. |
+| Anything else | Nothing | Start the session with: "Read `AGENTS.md` and follow it. When I type a workflow name, follow the matching file in `.claude/commands/`." |
+
+Two things to know when not using Claude Code:
+
+- Wherever a workflow says to ask a multiple-choice question, the assistant lists the options as text and
+  waits for you to answer.
+- The commit-and-push steps inside `ingest` and `apply` are skipped automatically when your candidate
+  folder is gitignored, which is the default here. They only run if you keep your data in a private fork.
 
 ## Privacy
 

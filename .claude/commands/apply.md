@@ -38,7 +38,9 @@ Target job ID: `$ARGUMENTS`
      AI tooling used to find or write the application. Never invent certifications, exam numbers, or
      course titles that are not written in `resume.md`.
 4. Run `.venv/Scripts/python run.py applied $ARGUMENTS` and confirm the status is now `applied`.
-5. **Commit, push, then remove the letter locally.** Run:
+5. **Commit, push, then remove the letter locally (private forks only).** First run
+   `git check-ignore -q candidates/<name> && echo ignored`. If it prints `ignored`, skip this step, leave the
+   letter on disk, and say so in one line. Otherwise run:
    ```
    git add -A
    git commit -m "Apply <name>/$ARGUMENTS: <company> - <title>"
@@ -48,5 +50,5 @@ Target job ID: `$ARGUMENTS`
    ```
    Confirm the push succeeded and the local file is gone in your reply. The skip-worktree flag stops
    git from staging the deletion, so the letter stays on GitHub while the local folder stays empty.
-   Never commit a deletion of a cover letter. This is mandatory after every apply.
+   Never commit a deletion of a cover letter. When the folder is tracked, this is mandatory after every apply.
 6. Reply with the file path and the full letter text.
