@@ -6,8 +6,7 @@ CLI, GitHub Copilot agent mode, or similar). The Python side does deterministic 
 scam filtering, optional semantic ranking). **You, the assistant, are the judge**: you read the survivors,
 evaluate them against the active candidate's `profile.md`, write the shortlist, and draft cover letters.
 
-This file is the only instruction file. Full design: `SPEC.md`. Setup and the onboarding questionnaire:
-`README.md`.
+This file is the only instruction file. Full design: `SPEC.md`. Setup: `README.md`.
 
 ## Triggering a workflow
 There are five workflows, defined in full at the bottom of this file: **onboard**, **ingest**,
@@ -71,16 +70,21 @@ Never work around the ignore rule with `git add -f`.
 ## onboard
 Interview the user and build a complete candidate folder from their answers. Do NOT scrape or evaluate.
 
-0. Ask for a short lowercase slug for the folder name (letters, digits, hyphens; e.g. `sara`). If
+0. **Time check first.** Tell the user the interview has 45 questions in 10 sections and takes roughly
+   25 to 40 minutes to answer properly, and that the quality of every shortlist and cover letter depends
+   on it. Ask whether they want to do it now. Offer two alternatives if not: (a) come back later, or
+   (b) a 10-minute short form where they hand over an existing CV or LinkedIn export and answer only
+   sections B, C, D and I below, with the rest extracted from the CV and gaps marked `TODO-<SLUG>:`.
+   Proceed with whichever they pick.
+1. Ask for a short lowercase slug for the folder name (letters, digits, hyphens; e.g. `sara`). If
    `candidates/<slug>/` already exists, ask whether to overwrite it or pick another name.
-1. Ask every question in the **Onboarding questionnaire** section of `README.md`, section by section,
-   in order. Use multiple-choice questions where the README offers options; otherwise ask in plain text.
-   Ask follow-ups whenever an answer is vague: a cover letter can only cite concrete facts, so push for
-   tool names, project scale, dates, numbers and outcomes. Never guess or fill a gap yourself.
-2. After the last section, ask for any extra material: an existing CV or resume (any format, pasted or
-   as a file path), a portfolio or LinkedIn or GitHub link, certificates, past cover letters, or anything
-   they think matters. Read whatever they give you and use it to enrich the answers.
-3. Copy `candidates/_template/` to `candidates/<slug>/` and write the three files from the answers:
+2. Ask the questions below section by section, in order, several per message so it does not drag.
+   Use multiple-choice questions where options are listed; otherwise ask in plain text. "None" or "not
+   applicable" is a valid answer, a blank is not. Ask follow-ups whenever an answer is vague: a cover
+   letter can only cite concrete facts, so push for tool names, project scale, dates, numbers and
+   outcomes. Never guess or fill a gap yourself.
+3. After the last section (J), read whatever extra material they give you and use it to enrich the answers.
+4. Copy `candidates/_template/` to `candidates/<slug>/` and write the three files from the answers:
    - `candidate.py`: `DISPLAY_NAME`, `SEARCH_TERMS` (8-15 title variants an employer would actually
      post), `SEARCH_LOCATIONS`, `SALARY_FLOORS_AED`, `DEFAULT_SALARY_FLOOR_AED`, `MAX_SENIORITY_LEVEL`,
      `SENIORITY_EXTRA_PATTERNS`, `EXCLUDE_TITLE_KEYWORDS`, `DOMAIN_TRACKS` (2-5 tracks with 5-15
@@ -91,9 +95,78 @@ Interview the user and build a complete candidate folder from their answers. Do 
      Add an `## Out of scope` section listing the role types they said they do not want.
    - `resume.md`: follow the template headings. Every bullet must be a concrete, citable fact they
      stated. Mark anything still missing with `TODO-<SLUG>:` so apply knows not to rely on it.
-4. Show the user all three files and ask them to confirm or correct. Apply corrections.
-5. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
+5. Show the user all three files and ask them to confirm or correct. Apply corrections.
+6. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
    line. Tell them the next step is ingest, then calibrate.
+
+### Onboarding questions
+Nationality and date of birth (A5) are only used to judge visa and licence questions; never write them
+into a letter.
+
+#### A. Identity and contact
+1. Full legal name as it should appear on applications.
+2. Short folder slug (lowercase, no spaces).
+3. Email address and phone number with country code.
+4. City or area and emirate you live in.
+5. Nationality and date of birth (only used to judge visa and licence questions; never written into letters).
+6. Links: LinkedIn, portfolio, GitHub, Behance, personal site. Paste each URL or say none.
+
+#### B. Visa, permits and availability
+7. Current UAE status: Golden Visa, employment visa, family sponsorship, visit visa, outside the UAE, other. If family or employer sponsored, who sponsors it and is it transferable?
+8. Does an employer hiring you need to pay for a residence visa or use a visa quota? What exactly is still required (for example a MOHRE work permit only)?
+9. Notice period or earliest start date. Are you already in the UAE with Emirates ID and medical done?
+10. Is your degree attested or equivalated in the UAE (MOFA, MOHESR)? State which.
+11. Professional registrations you hold or lack that employers ask for (Society of Engineers, municipality approval cards, DHA/DOH licence, teaching licence, CPA, PMP, cloud certificates, and so on). For each: held, in progress, or not eligible yet and why.
+12. UAE driving licence: yes, in progress, or no. Own car: yes or no.
+
+#### C. What you are looking for
+13. The 3 to 5 role families you want, in priority order, with the exact job titles employers use for each (for example "Junior Architect", "Architectural Draftsman", "BIM Modeler").
+14. Role families that look adjacent but you do NOT want (for example interior design, landscape, sales engineering, pure helpdesk). Be explicit; these become hard rejections.
+15. Seniority you will accept: intern, junior, mid, senior, lead. Which is the highest you would apply to?
+16. Job title words that should always be rejected (for example "solutions architect" for a building architect, "manager" if you do not want people management).
+17. Industries or company types you prefer or refuse (consultancy, contractor, developer, agency, startup, government, and so on).
+18. Are hybrid and remote roles in scope? Remote only within the UAE, or anywhere?
+
+#### D. Location and money
+19. Which emirates can you commute to daily, given where you live and whether you drive?
+20. Minimum monthly salary in AED for each: Dubai, Abu Dhabi, Sharjah, Ajman, other emirates, remote. Say what the floor covers (transport, housing) so the numbers make sense.
+21. If a posting shows no salary, should it be accepted (recommended) or rejected?
+22. Any allowances or arrangements that change the floor (company transport, accommodation, commission on top of base)?
+
+#### E. Education
+23. Every degree or diploma: title, major, institution, city and country, graduation date, grade or GPA if strong.
+24. Relevant coursework, thesis or graduation project: topic, scale, tools used, any grade or award.
+25. Courses, bootcamps and certificates with the issuing body and date. Only ones you actually hold.
+26. Academic awards, competitions, scholarships, dean's list.
+
+#### F. Work history (repeat for every job, internship and freelance engagement)
+27. Employer name, city, your title, start and end dates, hours or working days if part-time or short.
+28. Team and reporting line: who you reported to and what the department did.
+29. For each project or engagement you touched: what the building, product or system was, its scale (floors, users, revenue, headcount, square metres), your exact contribution, the tools used, and the outcome (approved, shipped, launched, saved X, delivered on time).
+30. Anything measurable: number of drawings, apps shipped, users served, tickets closed, uptime, money saved, percentage improvements.
+31. Any client-facing, authority-facing or site-facing work: what you did in front of clients, government reviewers or contractors.
+
+#### G. Skills and tools
+32. Every software tool you use professionally, grouped: primary daily tools, competent secondary tools, tools you are currently learning. Be honest about the level; the assistant will match postings to this list.
+33. Programming languages, frameworks, platforms or engineering methods, with level (professional, working, basic).
+34. Hands-on or field skills (site surveying, lab work, equipment, hardware, vehicles, instruments).
+35. Tools you do not know but are willing to pick up on the job; these let the assistant approve postings that list them as "an advantage".
+36. Spoken languages with level (native, fluent, conversational, basic). For each, say whether postings that require it are a plus, neutral, or a blocker.
+
+#### H. Personal projects and portfolio
+37. Up to five projects that are not part of a job: name, what it does or is, the stack or tools, scale or audience, any award, link if public.
+38. Which projects are you proudest of and why? Which should a cover letter lead with?
+
+#### I. How the assistant should pitch you
+39. Your three strongest selling points in one sentence each.
+40. Your biggest gap versus typical postings (years of experience, missing certificate, no licence) and how you want it framed. The assistant never apologises for a gap; tell it what to offer instead.
+41. Sensitive names to never write in a letter (previous employer under NDA, clients, supervisors, specific schools or sites), each with how to describe it by scale and function instead.
+42. Claims the assistant must never make about you (for example "no paperwork needed", "holds registration", "willing to relocate abroad").
+43. Deal-breakers: commission-only pay, roles that ask you to pay for visas or training, unnamed "confidential client" agencies, shift work, travel, anything else.
+44. Tone preferences for letters: plain, formal, warm; British or American spelling; anything you dislike in cover letters.
+
+#### J. Anything else
+45. Drop anything that helps: an existing CV or resume in any format, a portfolio PDF, past cover letters, reference letters, a job posting you loved or hated, screenshots of your work, a LinkedIn export, a list of companies you want to target, or notes on things this questionnaire did not ask. The assistant reads all of it and folds it into the three files, and asks before assuming anything the material does not state.
 
 ## ingest
 Run Phase 1 + Phase 2 of the pipeline. Do NOT evaluate anything.
