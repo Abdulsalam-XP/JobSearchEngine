@@ -94,7 +94,8 @@ Open your AI assistant in the repo folder and type a workflow name (a leading sl
 | `ingest` | Scrapes every search term × location, dedupes, applies the domain hull and the scam/ghost safety net, stores clean jobs in `candidates/me/data/career.db`. Takes several minutes. |
 | `calibrate` | Run once after your first ingest. Five pairwise A/B questions in the terminal teach a Bradley-Terry taste model that later acts as a tie-breaker. |
 | `evaluate` | The assistant reads every pending job against `profile.md` and writes `candidates/me/reports/daily_shortlist.md`, a ranked table with fit scores, one-line reasons and risks, plus a rejected list. Decisions are persisted so nothing is re-read tomorrow. |
-| `apply <ID>` | The assistant reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/me/reports/cover_letters/` and marks the job applied. |
+| `apply <ID>` | The assistant reads the posting, `resume.md` and `profile.md`, then writes a sub-350-word cover letter to `candidates/me/reports/cover_letters/` and marks the job applied. The letter stays on disk for you to send. |
+| `sent` | After you have submitted applications: lists the letters on disk, you tick the ones you sent, and they are marked sent so `stats` shows written versus submitted. |
 
 Underneath, everything is `run.py` subcommands, so you can also drive it by hand:
 
@@ -105,7 +106,9 @@ python run.py calibrate [N]          interactive Bradley-Terry taste session
 python run.py show <ID>              print one job in full
 python run.py shortlist <ID> [...]   mark as shortlisted
 python run.py evaluated <ID> [...]   mark as evaluated without shortlisting
-python run.py applied <ID>           mark as applied
+python run.py applied <ID>           mark as applied (letter written)
+python run.py sent <ID> [...]        mark as sent (letter actually submitted)
+python run.py letters                list cover letters on disk with their status
 python run.py stats                  database counters
 ```
 
@@ -275,6 +278,7 @@ ingest           # daily: several minutes of scraping, no model involved
 calibrate        # once, after the first ingest
 evaluate         # daily: the local model judges the top N
 apply <ID>       # per job you choose
+sent             # after you submit: record which letters went out
 ```
 
 ### What to watch with a local model

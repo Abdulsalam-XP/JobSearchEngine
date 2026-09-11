@@ -6,7 +6,9 @@
     python run.py show <ID>              print one job in full (for /apply)
     python run.py shortlist <ID> [...]   mark as shortlisted (+ evaluated)
     python run.py evaluated <ID> [...]   mark as evaluated without shortlisting
-    python run.py applied <ID>           mark as applied
+    python run.py applied <ID>           mark as applied (letter written)
+    python run.py sent <ID> [...]        mark as sent (letter actually submitted)
+    python run.py letters                list cover letters on disk with their job status
     python run.py stats                  database counters
     python run.py wipe-shortlist         reset reports/daily_shortlist.md
     python run.py candidate              show the active candidate and the valid names
@@ -17,6 +19,7 @@ Every command accepts --candidate NAME to override the active candidate for one 
 from __future__ import annotations
 
 import argparse
+import re
 import logging
 import sys
 from datetime import date
@@ -189,6 +192,42 @@ def cmd_applied(args) -> int:
     return _set_many([args.id], db.STATUS_APPLIED)
 
 
+def cmd_sent(args) -> int:
+    return _set_many(args.ids, db.STATUS_SENT)
+
+
+LETTER_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-([0-9a-f]{16})-(.+)\.md$")
+
+
+def local_letters() -> list[dict]:
+    """Cover letters currently on disk, joined to their job row. Unknown ids get status '?'."""
+    db.init_db()
+    out = []
+    for f in sorted(config.COVER_LETTER_DIR.glob("*.md")):
+        m = LETTER_RE.match(f.name)
+        if not m:
+            continue
+        job = db.get_job(m.group(2))
+        out.append({
+            "file": f, "date": m.group(1), "id": m.group(2), "slug": m.group(3),
+            "status": job["status"] if job else "?",
+            "title": job["title"] if job else "", "company": job["company"] if job else "",
+        })
+    return out
+
+
+def cmd_letters(_args) -> int:
+    letters = local_letters()
+    if not letters:
+        print("No cover letters on disk.")
+        return 0
+    for L in letters:
+        print(f"{L['id']}  {L['status']:<11} {L['date']}  {L['title']} @ {L['company']}  [{L['file'].name}]")
+    unsent = sum(1 for L in letters if L["status"] == db.STATUS_APPLIED)
+    print(f"\n{len(letters)} letter(s); {unsent} written but not yet sent.")
+    return 0
+
+
 def cmd_stats(_args) -> int:
     db.init_db()
     s = db.stats()
@@ -269,6 +308,12 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("applied")
     s.add_argument("id")
     s.set_defaults(fn=cmd_applied)
+
+    s = sub.add_parser("sent")
+    s.add_argument("ids", nargs="+")
+    s.set_defaults(fn=cmd_sent)
+
+    sub.add_parser("letters").set_defaults(fn=cmd_letters)
 
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
     sub.add_parser("wipe-shortlist").set_defaults(fn=cmd_wipe_shortlist)

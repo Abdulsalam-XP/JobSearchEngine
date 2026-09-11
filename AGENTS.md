@@ -9,8 +9,8 @@ evaluate them against the active candidate's `profile.md`, write the shortlist, 
 This file is the only instruction file. Full design: `SPEC.md`. Setup: `README.md`.
 
 ## Triggering a workflow
-There are five workflows, defined in full at the bottom of this file: **onboard**, **ingest**,
-**calibrate**, **evaluate**, **apply**. When the user types a workflow name, with or without a leading
+There are six workflows, defined in full at the bottom of this file: **onboard**, **ingest**,
+**calibrate**, **evaluate**, **apply**, **sent**. When the user types a workflow name, with or without a leading
 slash and with an optional job ID for apply (`apply 1a2b3c4d5e6f7a8b`), run that workflow step by step.
 Wherever a workflow says "ask a multiple-choice question", use your tool's question feature if it has
 one; otherwise list the options as text and wait for the answer.
@@ -30,11 +30,13 @@ candidate to use; `me` is always active. If a command complains that no candidat
 `.venv/Scripts/python run.py candidate set me` and continue.
 
 ## Git steps inside workflows
-The ingest and apply workflows contain commit-and-push steps. They exist so a candidate's database and
-cover-letter archive stay in sync across devices through a **private** remote. Before running them,
-check `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored` (the default in
-this public repo), skip every git step, say so in one line, and leave any cover letter on disk.
-Never work around the ignore rule with `git add -f`.
+The ingest, apply and sent workflows contain commit-and-push steps. They exist so a candidate's
+database and cover-letter archive stay in sync across devices through a **private** remote. Before
+running them, check `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored` (the
+default in this public repo), skip every git step and say so in one line. Never work around the ignore
+rule with `git add -f`. Cover letters are only ever removed from disk by the sent workflow, and only
+when the folder is tracked; in an ignored folder, sent just updates the database and the user tidies
+files as they like.
 
 ## Environment
 - Python venv at `.venv/`. Run scripts as `.venv/Scripts/python run.py <cmd>` on Windows or
@@ -50,7 +52,7 @@ Never work around the ignore rule with `git add -f`.
 | 1 Ingestion | Python | `scrapers/board_scraper.py` (jobspy: LinkedIn/Indeed/Bayt) + `scrapers/ats_direct.py` (Greenhouse/Lever JSON) |
 | 2 Safety net | Python | `engine/cleaner.py` (fuzzy dedupe) -> `algorithms/hull.py` (domain box) -> `engine/uae_detector.py` (fail-open scam/ghost scoring, quarantine at risk >= 50) |
 | 3 Mode toggle | Python | SUPER_SAIYAN: all survivors to the assistant. EFFICIENT: `engine/semantic_ranker.py` picks top 15 |
-| 4 Delivery | **Assistant** | evaluate writes `reports/daily_shortlist.md`; apply writes cover letters |
+| 4 Delivery | **Assistant** | evaluate writes `reports/daily_shortlist.md`; apply writes cover letters; sent records submissions |
 
 ## Conventions
 - Never invent job data. If a field is missing, say so in the report.
@@ -301,18 +303,38 @@ Write a hyper-targeted cover letter for one job and mark it applied.
      AI tooling used to find or write the application. Never invent certifications, exam numbers, or
      course titles that are not written in `resume.md`.
 4. Run `.venv/Scripts/python run.py applied <ID>` (one ID per call) and confirm the status is now `applied`.
-5. **Commit, push, then remove the letter locally (private forks only).** First run
-   `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored`, skip this step,
-   leave the letter on disk, and say so in one line. Otherwise run:
+5. **Commit and push (private forks only). Keep the letter on disk.** First run
+   `git check-ignore -q candidates/me && echo ignored`. If it prints `ignored`, skip this step and say
+   so in one line. Otherwise run:
    ```
    git add -A
    git commit -m "Apply <ID>: <company> - <title>"
    git push
+   ```
+   Do NOT delete or skip-worktree the letter: `applied` only means the letter is written. The user sends
+   it from the local folder and then runs the sent workflow. Never commit a deletion of a cover letter.
+6. Reply with the file path and the full letter text.
+
+## sent
+Record which cover letters the user has actually submitted. Run only after the user says they sent them.
+
+0. Every path below is relative to `candidates/me/`.
+1. Run `.venv/Scripts/python run.py letters`. It lists every cover letter on disk with its job ID, status
+   and company. If it prints "No cover letters on disk", say so and stop.
+2. Ask the user which of the listed letters they have sent, as a multi-select question with one option
+   per letter (company and title) plus "All of them".
+3. For the chosen IDs run `.venv/Scripts/python run.py sent <ID> <ID> ...` and confirm each line shows
+   `-> sent`.
+4. **Archive (private forks only).** Run `git check-ignore -q candidates/me && echo ignored`. If it prints
+   `ignored`, stop here; the database is updated and the files stay as they are. Otherwise:
+   ```
+   git add candidates/me/data/career.db
+   git commit -m "Sent <ID> [<ID> ...]: <N> applications submitted"
+   git push
    git update-index --skip-worktree candidates/me/reports/cover_letters/<file>
    rm candidates/me/reports/cover_letters/<file>
    ```
-   Confirm the push succeeded and the local file is gone in your reply. The skip-worktree flag stops
-   git from staging the deletion, so the letter stays on the remote while the local folder stays empty.
-   Never commit a deletion of a cover letter. To read an old letter, use
-   `git show origin/main:candidates/me/reports/cover_letters/<file>`.
-6. Reply with the file path and the full letter text.
+   Repeat the last two lines per sent letter. Unticked letters stay on disk. Never commit a deletion of
+   a cover letter.
+5. Reply with what was marked sent, what is still waiting, and the applied-versus-sent counts from
+   `.venv/Scripts/python run.py stats`.
