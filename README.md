@@ -217,12 +217,134 @@ workflows written out step by step. Most tools read it on their own.
 | Claude Code | Through `CLAUDE.md`, a one-line file that imports `AGENTS.md` | Nothing. Type a workflow name; `/onboard` style also works. |
 | Gemini CLI | No (it looks for `GEMINI.md`) | Either start the session with "Read `AGENTS.md` and follow it", or set `context.fileName` to `AGENTS.md` in `.gemini/settings.json`. |
 | Anything else | No | Start the session with: "Read `AGENTS.md` and follow it. When I type a workflow name, run that workflow." |
+| Ollama (free, local) | Depends on the agent | See "Free option: Ollama" below. |
 
 The assistant must be able to read files and run shell commands in the repo folder; a plain chat window
 cannot drive the engine. Wherever a workflow says to ask a multiple-choice question, tools without a
 question feature list the options as text and wait. The commit-and-push steps inside `ingest` and `apply`
 skip themselves when your candidate folder is gitignored, which is the default here; they only run if you
 keep your data in a private fork.
+
+## Free option: Ollama
+
+Nothing in the engine calls a paid API. Scraping and filtering are plain Python, and the judging is done
+by whichever coding agent sits in the repo folder. So a fully free setup is: a local model served by
+[Ollama](https://ollama.com), driven by an open-source agent that can read files and run commands. Expect
+weaker judgement than a frontier model; the steps below are tuned to make that gap as small as possible.
+
+### 1. Hardware reality check
+
+| Machine | Model to pull | Batch setting |
+|---|---|---|
+| 16 GB RAM, no GPU, or an 8 GB GPU | `qwen3:8b` or `qwen2.5-coder:7b` | EFFICIENT mode, `EFFICIENT_TOP_N = 8` |
+| 16 GB+ GPU or 32 GB unified memory (Apple Silicon) | `gpt-oss:20b` or `qwen3:14b` | EFFICIENT mode, `EFFICIENT_TOP_N = 15` (default) |
+| 24 GB+ GPU or 64 GB unified memory | `qwen3:32b` or `qwen2.5-coder:32b` | EFFICIENT mode, or SUPER_SAIYAN for small ingests |
+
+Pick a model that is tuned for tool calling. The workflows need the model to run `run.py` commands and
+write files, not just chat. The models above all support tools in Ollama.
+
+### 2. Install Ollama and pull a model
+
+Windows and macOS: download the installer from https://ollama.com/download. Linux:
+
+```
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Then pull the model for your machine, for example:
+
+```
+ollama pull gpt-oss:20b
+```
+
+### 3. Raise the context window
+
+Ollama's default context is small (4K tokens). One job posting is 500 to 1,500 tokens and the evaluate
+workflow hands the agent a batch of them plus `profile.md`, so the model needs at least 32K. Set it
+once as an environment variable before the Ollama server starts:
+
+Windows (PowerShell, then restart Ollama from the tray icon):
+```
+[System.Environment]::SetEnvironmentVariable("OLLAMA_CONTEXT_LENGTH", "32768", "User")
+```
+macOS / Linux (add to your shell profile, then restart the server):
+```
+export OLLAMA_CONTEXT_LENGTH=32768
+```
+
+Verify with `ollama run gpt-oss:20b` and type `/show parameters`; you should see the new context length.
+Larger contexts use more memory, so drop back to 16384 if the model fails to load.
+
+### 4. Switch the engine to EFFICIENT mode
+
+Open `engine/config.py` and change:
+
+```
+MODE = EFFICIENT_MODE
+EFFICIENT_TOP_N = 15      # lower it for smaller models, see the table above
+```
+
+EFFICIENT mode ranks every survivor locally with a small SentenceTransformer and only sends the top N to
+the model. It needs `torch` and `sentence-transformers` from `requirements.txt`; if they are missing it
+falls back to TF-IDF ranking, which still works but is cruder.
+
+### 5. Install an agent that talks to Ollama
+
+**Option A: Codex CLI (simplest).** OpenAI's open-source coding agent has a built-in Ollama mode and reads
+`AGENTS.md` automatically.
+
+```
+npm install -g @openai/codex
+cd JobSearchEngine
+codex --oss -m gpt-oss:20b
+```
+
+`--oss` points Codex at your local Ollama server instead of OpenAI; `-m` picks the model you pulled.
+Inside Codex, type `onboard`, then later `ingest`, `evaluate`, `apply <ID>` exactly as the workflow
+table above describes.
+
+**Option B: OpenCode.** Also open source, also reads `AGENTS.md`, and lets you name any Ollama model.
+Install it from https://opencode.ai, then create `opencode.json` in the repo folder:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": { "gpt-oss:20b": { "name": "gpt-oss 20b" } }
+    }
+  },
+  "model": "ollama/gpt-oss:20b"
+}
+```
+
+Run `opencode` in the repo folder and type the workflow names. Other agents with Ollama support (Aider,
+Cline, Continue, Goose) work the same way once they can read files and run shell commands; if one does
+not pick up `AGENTS.md` by itself, start the session with "Read `AGENTS.md` and follow it."
+
+### 6. Run it
+
+```
+onboard          # once: builds candidates/<name>/ from your answers
+ingest           # daily: several minutes of scraping, no model involved
+calibrate        # once, after the first ingest
+evaluate         # daily: the local model judges the top N
+apply <ID>       # per job you choose
+```
+
+### What to watch with a local model
+
+- **Read every letter before sending it.** Small models are more likely to invent a certificate or name
+  something from the never-name list. The rules in `AGENTS.md` forbid both, but enforcement is only as
+  good as the model.
+- **If evaluate stalls or truncates,** lower `EFFICIENT_TOP_N` or raise `OLLAMA_CONTEXT_LENGTH`.
+- **If the agent refuses to run commands,** the model probably lacks tool support. Switch to one of the
+  models in the table.
+- **Speed.** A 20B model on a mid-range GPU evaluates 15 jobs in a few minutes; on CPU alone, expect
+  much longer. Ingest speed is unaffected because it never touches the model.
 
 ## Privacy
 
