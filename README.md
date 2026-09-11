@@ -264,3 +264,7 @@ apply <ID>       # per job you choose
   remote.
 - Cover letters name real companies and contain your contact details. Keep them in a private remote.
 - The engine never submits applications. It writes letters; you send them.
+
+## License
+
+MIT. See `LICENSE`.

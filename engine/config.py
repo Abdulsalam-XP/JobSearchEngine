@@ -2,8 +2,8 @@
 
 Flip MODE to switch between the two Phase-3 strategies:
 
-  SUPER_SAIYAN_MODE  - every surviving job goes to Claude (Claude Max).
-  EFFICIENT_MODE     - local SentenceTransformers ranks first, top N go to Claude (Claude Pro).
+  SUPER_SAIYAN_MODE  - every surviving job goes to the AI assistant (generous plan).
+  EFFICIENT_MODE     - local SentenceTransformers ranks first, top N go to the AI assistant (tighter plan).
 """
 from pathlib import Path
 
@@ -13,7 +13,7 @@ EFFICIENT_MODE = "EFFICIENT"
 # >>> THE TOGGLE <<<
 MODE = SUPER_SAIYAN_MODE
 
-# How many jobs EFFICIENT_MODE forwards to Claude for final evaluation.
+# How many jobs EFFICIENT_MODE forwards to the AI assistant for final evaluation.
 EFFICIENT_TOP_N = 15
 
 # Local embedding model used by engine/semantic_ranker.py (runs on CPU).

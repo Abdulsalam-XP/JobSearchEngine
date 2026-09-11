@@ -1,4 +1,4 @@
-"""Command-line entry point used by the Claude Code slash commands.
+"""Command-line entry point used by the AI assistant workflows in AGENTS.md.
 
     python run.py ingest                 scrape -> dedupe -> hull -> safety net -> career.db
     python run.py pending                print un-evaluated survivors as Markdown (mode-aware)
