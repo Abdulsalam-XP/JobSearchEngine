@@ -52,8 +52,8 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
    you through the questions section by section (identity, visa status, target roles, salary floors,
    education, work history, tools, projects, how to pitch you) and asks for any CV, portfolio or links
    you already have. Your answers are saved after every reply, so you can type `save and exit` at any
-   point and run `onboard` again later to continue. At the end it writes the three candidate files and
-   activates the candidate.
+   point and run `onboard` again later to continue, and `edit <question number>` changes any earlier
+   answer. At the end it writes the three candidate files and activates the candidate.
 
    The manual way: copy the template and rename it to a short lowercase slug.
 

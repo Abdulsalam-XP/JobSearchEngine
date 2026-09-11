@@ -72,7 +72,8 @@ Interview the user and build a complete candidate folder from their answers. Do 
 
 0. **Time check first.** Tell the user the interview has 45 questions in 10 sections and takes roughly
    25 to 40 minutes to answer properly, that the quality of every shortlist and cover letter depends
-   on it, and that they can type `save and exit` at any point and pick up later where they stopped.
+   on it, that they can type `save and exit` at any point and pick up later where they stopped, and
+   that `edit <number>` changes any earlier answer at any time.
    Ask whether they want to do it now. Offer two alternatives if not: (a) come back later, or
    (b) a 10-minute short form where they hand over an existing CV or LinkedIn export and answer only
    sections B, C, D and I below, with the rest extracted from the CV and gaps marked `TODO-<SLUG>:`.
@@ -93,6 +94,12 @@ Interview the user and build a complete candidate folder from their answers. Do 
    applicable" is a valid answer, a blank is not. Ask follow-ups whenever an answer is vague: a cover
    letter can only cite concrete facts, so push for tool names, project scale, dates, numbers and
    outcomes. Never guess or fill a gap yourself.
+   - **Editing earlier answers.** At any point the user can say `edit <question number>` (e.g.
+     `edit 20`), `change my answer to <topic>`, or `show my answers`. On `show`, print the saved file.
+     On an edit, quote the current answer, take the new one, rewrite that entry in
+     `onboarding_answers.md` (keeping the `Next:` pointer where it was), confirm the change, and
+     return to the question you were on. Do this with as little ceremony as possible; it should feel
+     like correcting a form field, not restarting.
    - If at any point the user says `save and exit`, `stop`, `later`, `pause`, or anything equivalent:
      write the file one last time, confirm the path and the next question number, tell them to type
      `onboard` again with the same slug to resume, and end the workflow without writing the three
@@ -109,7 +116,9 @@ Interview the user and build a complete candidate folder from their answers. Do 
      Add an `## Out of scope` section listing the role types they said they do not want.
    - `resume.md`: follow the template headings. Every bullet must be a concrete, citable fact they
      stated. Mark anything still missing with `TODO-<SLUG>:` so apply knows not to rely on it.
-6. Show the user all three files and ask them to confirm or correct. Apply corrections.
+6. Show the user all three files and offer a final review: they can correct anything in the generated
+   files directly, or say `edit <question number>` to change an answer, in which case update
+   `onboarding_answers.md` and regenerate the affected file. Repeat until they confirm.
 7. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
    line. Leave `onboarding_answers.md` in place as the record of what they said. Tell them the next
    step is ingest, then calibrate.
