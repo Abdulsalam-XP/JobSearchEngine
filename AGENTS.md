@@ -71,20 +71,34 @@ Never work around the ignore rule with `git add -f`.
 Interview the user and build a complete candidate folder from their answers. Do NOT scrape or evaluate.
 
 0. **Time check first.** Tell the user the interview has 45 questions in 10 sections and takes roughly
-   25 to 40 minutes to answer properly, and that the quality of every shortlist and cover letter depends
-   on it. Ask whether they want to do it now. Offer two alternatives if not: (a) come back later, or
+   25 to 40 minutes to answer properly, that the quality of every shortlist and cover letter depends
+   on it, and that they can type `save and exit` at any point and pick up later where they stopped.
+   Ask whether they want to do it now. Offer two alternatives if not: (a) come back later, or
    (b) a 10-minute short form where they hand over an existing CV or LinkedIn export and answer only
    sections B, C, D and I below, with the rest extracted from the CV and gaps marked `TODO-<SLUG>:`.
    Proceed with whichever they pick.
-1. Ask for a short lowercase slug for the folder name (letters, digits, hyphens; e.g. `sara`). If
-   `candidates/<slug>/` already exists, ask whether to overwrite it or pick another name.
-2. Ask the questions below section by section, in order, several per message so it does not drag.
+1. Ask for a short lowercase slug for the folder name (letters, digits, hyphens; e.g. `sara`).
+   - If `candidates/<slug>/onboarding_answers.md` exists, this is a resume. Tell them which sections
+     are already complete and which question comes next, ask whether to continue from there or start
+     over, and continue accordingly.
+   - Otherwise, if `candidates/<slug>/` already exists with a finished profile, ask whether to
+     overwrite it or pick another name.
+2. **Save after every reply.** Keep `candidates/<slug>/onboarding_answers.md` as the running record:
+   one heading per section (A to J), one `**Qn.**` line per question with the answer beneath it, and a
+   `Next: <section letter><question number>` line at the top. Rewrite the file after every user message,
+   before asking the next question, so nothing is lost if the session dies. The folder is gitignored, so
+   the file never leaves the machine.
+3. Ask the questions below section by section, in order, several per message so it does not drag.
    Use multiple-choice questions where options are listed; otherwise ask in plain text. "None" or "not
    applicable" is a valid answer, a blank is not. Ask follow-ups whenever an answer is vague: a cover
    letter can only cite concrete facts, so push for tool names, project scale, dates, numbers and
    outcomes. Never guess or fill a gap yourself.
-3. After the last section (J), read whatever extra material they give you and use it to enrich the answers.
-4. Copy `candidates/_template/` to `candidates/<slug>/` and write the three files from the answers:
+   - If at any point the user says `save and exit`, `stop`, `later`, `pause`, or anything equivalent:
+     write the file one last time, confirm the path and the next question number, tell them to type
+     `onboard` again with the same slug to resume, and end the workflow without writing the three
+     candidate files.
+4. After the last section (J), read whatever extra material they give you and use it to enrich the answers.
+5. Copy `candidates/_template/` to `candidates/<slug>/` and write the three files from the answers:
    - `candidate.py`: `DISPLAY_NAME`, `SEARCH_TERMS` (8-15 title variants an employer would actually
      post), `SEARCH_LOCATIONS`, `SALARY_FLOORS_AED`, `DEFAULT_SALARY_FLOOR_AED`, `MAX_SENIORITY_LEVEL`,
      `SENIORITY_EXTRA_PATTERNS`, `EXCLUDE_TITLE_KEYWORDS`, `DOMAIN_TRACKS` (2-5 tracks with 5-15
@@ -95,9 +109,10 @@ Interview the user and build a complete candidate folder from their answers. Do 
      Add an `## Out of scope` section listing the role types they said they do not want.
    - `resume.md`: follow the template headings. Every bullet must be a concrete, citable fact they
      stated. Mark anything still missing with `TODO-<SLUG>:` so apply knows not to rely on it.
-5. Show the user all three files and ask them to confirm or correct. Apply corrections.
-6. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
-   line. Tell them the next step is ingest, then calibrate.
+6. Show the user all three files and ask them to confirm or correct. Apply corrections.
+7. Run `.venv/Scripts/python run.py candidate set <slug>` and confirm the `Candidate: <display name>`
+   line. Leave `onboarding_answers.md` in place as the record of what they said. Tell them the next
+   step is ingest, then calibrate.
 
 ### Onboarding questions
 Nationality and date of birth (A5) are only used to judge visa and licence questions; never write them
