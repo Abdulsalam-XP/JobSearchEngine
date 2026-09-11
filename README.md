@@ -143,26 +143,26 @@ else, so anything you leave out cannot appear in a cover letter.
 31. Any client-facing, authority-facing or site-facing work: what you did in front of clients, government reviewers or contractors.
 
 ### G. Skills and tools
-32. Every software tool you use professionally, grouped: primary daily tools, competent secondary tools, tools you are currently learning. Be honest about the level; Claude will match postings to this list.
+32. Every software tool you use professionally, grouped: primary daily tools, competent secondary tools, tools you are currently learning. Be honest about the level; the assistant will match postings to this list.
 33. Programming languages, frameworks, platforms or engineering methods, with level (professional, working, basic).
 34. Hands-on or field skills (site surveying, lab work, equipment, hardware, vehicles, instruments).
-35. Tools you do not know but are willing to pick up on the job; these let Claude approve postings that list them as "an advantage".
+35. Tools you do not know but are willing to pick up on the job; these let the assistant approve postings that list them as "an advantage".
 36. Spoken languages with level (native, fluent, conversational, basic). For each, say whether postings that require it are a plus, neutral, or a blocker.
 
 ### H. Personal projects and portfolio
 37. Up to five projects that are not part of a job: name, what it does or is, the stack or tools, scale or audience, any award, link if public.
 38. Which projects are you proudest of and why? Which should a cover letter lead with?
 
-### I. How Claude should pitch you
+### I. How the assistant should pitch you
 39. Your three strongest selling points in one sentence each.
-40. Your biggest gap versus typical postings (years of experience, missing certificate, no licence) and how you want it framed. Claude never apologises for a gap; tell it what to offer instead.
+40. Your biggest gap versus typical postings (years of experience, missing certificate, no licence) and how you want it framed. The assistant never apologises for a gap; tell it what to offer instead.
 41. Sensitive names to never write in a letter (previous employer under NDA, clients, supervisors, specific schools or sites), each with how to describe it by scale and function instead.
-42. Claims Claude must never make about you (for example "no paperwork needed", "holds registration", "willing to relocate abroad").
+42. Claims the assistant must never make about you (for example "no paperwork needed", "holds registration", "willing to relocate abroad").
 43. Deal-breakers: commission-only pay, roles that ask you to pay for visas or training, unnamed "confidential client" agencies, shift work, travel, anything else.
 44. Tone preferences for letters: plain, formal, warm; British or American spelling; anything you dislike in cover letters.
 
 ### J. Anything else
-45. Drop anything that helps: an existing CV or resume in any format, a portfolio PDF, past cover letters, reference letters, a job posting you loved or hated, screenshots of your work, a LinkedIn export, a list of companies you want to target, or notes on things this questionnaire did not ask. Claude reads all of it and folds it into the three files, and asks before assuming anything the material does not state.
+45. Drop anything that helps: an existing CV or resume in any format, a portfolio PDF, past cover letters, reference letters, a job posting you loved or hated, screenshots of your work, a LinkedIn export, a list of companies you want to target, or notes on things this questionnaire did not ask. The assistant reads all of it and folds it into the three files, and asks before assuming anything the material does not state.
 
 ## Daily workflow
 
@@ -204,7 +204,7 @@ candidate for one run.
 4. **Safety net**: `engine/uae_detector.py` scores visa-fee traps, sub-floor wages, commission-only roles,
    unnamed agencies and ghost postings. Anything at risk 50 or above is quarantined, never deleted. It
    fails open: no salary listed means acceptable.
-5. **Judgement**: Claude, guided by `profile.md`. Years of experience are never a hard blocker on their own.
+5. **Judgement**: the assistant, guided by `profile.md`. Years of experience are never a hard blocker on their own.
 
 ## Which assistant
 
