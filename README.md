@@ -18,7 +18,7 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
 - An AI coding assistant that can read files and run shell commands in the repo folder.
   [Claude Code](https://claude.com/claude-code) and the others read the same `AGENTS.md`; see "Which assistant" below. There is no other UI.
 - Git.
-- Optional: about 2 GB of disk for `torch` and `sentence-transformers` if you want EFFICIENT mode. Without
+- Optional: about 2 GB of disk for the EFFICIENT-mode extras (`requirements-efficient.txt`). Without
   them the ranker falls back to TF-IDF with a warning and everything still works.
 
 ## Setup
@@ -44,8 +44,13 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
    python -m venv .venv
    .venv/bin/pip install -r requirements.txt
    ```
-   `torch` and `sentence-transformers` are the heavy entries in `requirements.txt`. Remove those two lines
-   before installing if you only intend to use SUPER_SAIYAN mode.
+   That installs the light set (about 200 MB). If you plan to use EFFICIENT mode, which ranks jobs
+   locally before the assistant sees them, install the optional extras too (about 2 GB, mostly `torch`):
+   ```
+   .venv\Scripts\pip install -r requirements-efficient.txt     # Windows
+   .venv/bin/pip install -r requirements-efficient.txt         # macOS / Linux
+   ```
+   Without them EFFICIENT mode still runs, using a cruder TF-IDF ranking.
 
 3. **Tell it about yourself.** Open your AI assistant in the repo folder and type `onboard`.
    It first tells you how long the interview takes and asks whether you want to do it now, then walks
@@ -105,6 +110,31 @@ python run.py stats                  database counters
 ```
 
 Add `-v` before the subcommand for per-job reasons.
+
+## What the output looks like
+
+After `evaluate`, `candidates/me/reports/daily_shortlist.md` looks like this (example data):
+
+```
+# Daily Shortlist - 2026-09-11
+Candidate: Sara Example
+Mode: SUPER_SAIYAN | Evaluated: 62 | Shortlisted: 4
+
+## Top matches
+| # | ID | Title | Company | Location | Fit /10 | Why | Risk |
+|---|---|---|---|---|---|---|---|
+| 1 | 6c45c5a34de44efb | Junior Architect | Example Design Consultancy | Dubai | 9 | Explicitly 0-3 years; AutoCAD, Revit and Lumion all on her stack | No salary stated |
+| 2 | 2e0147da2a47bdb1 | Architectural Draftsman | Example Engineering | Sharjah | 7 | Authority submission drafting matches her internship | Asks 4 years |
+
+## Rejected
+- 9ad1e0b23d187689 Solutions Architect @ Example Cloud: software architect, out of scope
+- fa704f7af02f6ade Landscape Modeler @ Example Developer: landscape, out of scope
+```
+
+After `apply <ID>`, a cover letter lands in `candidates/me/reports/cover_letters/` with the posting link
+at the top and a sub-350-word letter that opens on the company, maps the posting's requirements to
+lines in your `resume.md`, pitches your strategic advantage in its own paragraph, and ends with a call to
+action. You read it, adjust anything you like, and send it yourself.
 
 ## How the filtering works
 
@@ -197,7 +227,7 @@ EFFICIENT_TOP_N = 15      # lower it for smaller models, see the table above
 ```
 
 EFFICIENT mode ranks every survivor locally with a small SentenceTransformer and only sends the top N to
-the model. It needs `torch` and `sentence-transformers` from `requirements.txt`; if they are missing it
+the model. It needs the extras in `requirements-efficient.txt`; if they are missing it
 falls back to TF-IDF ranking, which still works but is cruder.
 
 ### 5. Install an agent that talks to Ollama
@@ -257,6 +287,31 @@ apply <ID>       # per job you choose
   models in the table.
 - **Speed.** A 20B model on a mid-range GPU evaluates 15 jobs in a few minutes; on CPU alone, expect
   much longer. Ingest speed is unaffected because it never touches the model.
+
+## Updating
+
+`git pull` is safe at any time. Your `candidates/me/` folder is ignored by git, so updates never touch
+your profile, database or letters.
+
+## Troubleshooting
+
+- **`no active candidate`** on any command: run `onboard`, or if the folder already exists,
+  `.venv/Scripts/python run.py candidate set me`.
+- **Ingest ends with 0 board jobs, or logs 403 / 429 errors.** LinkedIn and Indeed rate-limit scrapers;
+  Bayt blocks them outright (harmless, the code tolerates it). Wait an hour and retry, or run
+  `.venv/Scripts/python run.py ingest --skip-boards` so at least the direct ATS boards land.
+- **Ingest takes more than 15 minutes.** Normal for many search terms. Trim `SEARCH_TERMS` or
+  `SEARCH_LOCATIONS` in `candidates/me/candidate.py` to what you actually want.
+- **Everything gets quarantined.** Your salary floors are probably above what postings state. Lower
+  `SALARY_FLOORS_AED` in `candidate.py`; quarantined jobs are kept in the database, never deleted.
+- **Nothing survives the hull.** Your `DOMAIN_TRACKS` keywords do not appear in real titles. Run ingest
+  with `-v` to see each rejection reason and widen the keyword lists.
+- **`torch` fails to install.** Skip it. Use `requirements.txt` only and either stay in SUPER_SAIYAN
+  mode or accept TF-IDF ranking in EFFICIENT mode.
+- **The assistant wrote a letter that names something it should not, or invents a credential.** That
+  is a rules violation, not an engine bug. Tell it to fix the letter, and add the item to the
+  `## Never name` section of `candidates/me/profile.md` so it does not recur.
+- **Start over.** Delete `candidates/me/` and run `onboard` again. Nothing else holds state.
 
 ## Privacy
 

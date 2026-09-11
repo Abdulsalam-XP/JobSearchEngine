@@ -1,0 +1,4 @@
+-r requirements.txt
+# Optional: local semantic ranking for EFFICIENT mode (about 2 GB of downloads).
+sentence-transformers>=2.5.1
+torch>=2.2.0
