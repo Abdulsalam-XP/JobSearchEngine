@@ -1,8 +1,8 @@
 # UAE Autonomous Career Engine
 
 Local, zero-subscription job discovery and screening agent for the UAE market, driven by an AI coding
-assistant that can read files and run shell commands (Claude Code, Codex CLI, Cursor, Windsurf, Gemini
-CLI, GitHub Copilot agent mode, or similar). The Python side does deterministic work (scraping, dedupe,
+assistant that can read files and run shell commands (Claude Code, Codex CLI, Cursor, Windsurf,
+Antigravity CLI, GitHub Copilot agent mode, or similar). The Python side does deterministic work (scraping, dedupe,
 scam filtering, optional semantic ranking). **You, the assistant, are the judge**: you read the survivors,
 evaluate them against the active candidate's `profile.md`, write the shortlist, and draft cover letters.
 

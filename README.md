@@ -1,8 +1,8 @@
 # UAE Autonomous Career Engine
 
 A local, zero-subscription job discovery and screening agent for the UAE market, driven by whatever AI
-coding assistant you already use (Claude Code, Codex CLI, Cursor, Windsurf, Gemini CLI, Copilot agent
-mode). Python does the deterministic work (scraping LinkedIn, Indeed, Bayt and direct ATS boards; fuzzy
+coding assistant you already use (Claude Code, Codex CLI, Cursor, Windsurf, Antigravity CLI, Copilot
+agent mode). Python does the deterministic work (scraping LinkedIn, Indeed, Bayt and direct ATS boards; fuzzy
 dedupe; a scam and ghost-job safety net; optional semantic ranking). The assistant does the judging: it
 reads every surviving posting against your `profile.md`, writes a ranked daily shortlist, and drafts a
 targeted cover letter for each job you choose.
@@ -17,9 +17,25 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
 - Windows, macOS or Linux with Python 3.11 or newer (developed on 3.12).
 - An AI coding assistant that can read files and run shell commands in the repo folder.
   [Claude Code](https://claude.com/claude-code) and the others read the same `AGENTS.md`; see "Which assistant" below. There is no other UI.
+  No paid plan? See "Free option: Antigravity CLI" and "Free option: Ollama" below.
 - Git.
+- Node.js, only if the assistant you pick installs through `npm` (Codex CLI, for example).
 - Optional: about 2 GB of disk for the EFFICIENT-mode extras (`requirements-efficient.txt`). Without
   them the ranker falls back to TF-IDF with a warning and everything still works.
+
+### Installing the prerequisites on Windows
+
+`winget` ships with Windows 10 and 11. In PowerShell:
+
+```
+winget install -e --id Python.Python.3.12; winget install -e --id Git.Git
+winget install -e --id OpenJS.NodeJS.LTS      # only if your assistant needs npm
+```
+
+Accept each installer prompt, then **close PowerShell and open a new window** so the new PATH is picked
+up. Check with `python --version; git --version`. If `winget` is missing (older Windows 10), install
+"App Installer" from the Microsoft Store first. If anything misbehaves, see "Windows setup problems"
+under Troubleshooting.
 
 ## Setup
 
@@ -44,7 +60,8 @@ Full design notes are in `SPEC.md`. Every rule and workflow the assistant follow
    python -m venv .venv
    .venv/bin/pip install -r requirements.txt
    ```
-   That installs the light set (about 200 MB). If you plan to use EFFICIENT mode, which ranks jobs
+   Run the two lines one at a time. That installs the light set (about 200 MB), including `pytest` for
+   step 5. If you plan to use EFFICIENT mode, which ranks jobs
    locally before the assistant sees them, install the optional extras too (about 2 GB, mostly `torch`):
    ```
    .venv\Scripts\pip install -r requirements-efficient.txt     # Windows
@@ -160,7 +177,8 @@ workflows written out step by step. Most tools read it on their own.
 |---|---|---|
 | Codex CLI, Cursor, Windsurf, Copilot agent mode, most others | Yes | Nothing. Type a workflow name. |
 | Claude Code | Through `CLAUDE.md`, a one-line file that imports `AGENTS.md` | Nothing. Type a workflow name; `/onboard` style also works. |
-| Gemini CLI | No (it looks for `GEMINI.md`) | Either start the session with "Read `AGENTS.md` and follow it", or set `context.fileName` to `AGENTS.md` in `.gemini/settings.json`. |
+| Antigravity CLI (`agy`) | Partly. It auto-loads rules files but caps their length, and `AGENTS.md` is longer than the cap | Start every session with "Read `AGENTS.md` in full and follow it. When I type a workflow name, run that workflow." See "Free option: Antigravity CLI" below. |
+| Gemini CLI | n/a | Google stopped serving personal accounts (free, AI Pro and AI Ultra) on 18 June 2026; sign-in now fails with "This client is no longer supported for Gemini Code Assist for individuals". Use Antigravity CLI instead. Only organisation Code Assist licences still work. |
 | Anything else | No | Start the session with: "Read `AGENTS.md` and follow it. When I type a workflow name, run that workflow." |
 | Ollama (free, local) | Depends on the agent | See "Free option: Ollama" below. |
 
@@ -169,6 +187,51 @@ cannot drive the engine. Wherever a workflow says to ask a multiple-choice quest
 question feature list the options as text and wait. The commit-and-push steps inside `ingest` and `apply`
 skip themselves when `candidates/me/` is gitignored, which is the default here; they only run if you
 keep your data in a private fork.
+
+## Free option: Antigravity CLI
+
+No subscription and no strong hardware? Google's terminal agent, Antigravity CLI, signs in with a personal
+Google account. At the time of writing (September 2026) it is free in public preview with no credit card;
+the quota refreshes every few hours and Google has tightened it more than once, so treat the limits as
+a moving target.
+
+1. Finish the Setup section above first (clone, venv, `pip install`).
+2. Install it.
+
+   Windows (PowerShell):
+   ```
+   irm https://antigravity.google/cli/install.ps1 | iex
+   ```
+   macOS / Linux:
+   ```
+   curl -fsSL https://antigravity.google/cli/install.sh | bash
+   ```
+3. **Open a new terminal** (the installer changes PATH), go to the repo folder and start it:
+   ```
+   cd JobSearchEngine
+   agy
+   ```
+   A browser window opens; sign in with a personal Gmail account.
+4. Make this the first message of **every** session:
+   ```
+   Read AGENTS.md in full and follow it. When I type a workflow name, run that workflow.
+   ```
+   Antigravity caps the length of rules files it loads by itself (about 12,000 characters) and
+   `AGENTS.md` is roughly twice that, with the workflows at the bottom. Asking it to read the file
+   avoids a silently truncated rule set.
+5. Type `onboard`, then carry on with the daily workflow table above.
+
+Tips:
+
+- When it asks permission to run `run.py` commands or write files, "always allow" for the Python
+  commands saves many prompts during an ingest.
+- If you hit the quota in the middle of `evaluate`, wait for the refresh and type `evaluate` again;
+  decisions already persisted are not redone. Setting `MODE = EFFICIENT_MODE` in `engine/config.py`
+  sends only the top 15 jobs to the model and stretches the quota a long way.
+- If `calibrate` cannot take your A/B answers inside the agent, run it yourself in a normal terminal:
+  `.venv/Scripts/python run.py calibrate 5`.
+- Prompts on a free tier may be used to improve Google's models. Your resume and profile pass
+  through it, so check the privacy settings of the account you sign in with.
 
 ## Free option: Ollama
 
@@ -316,6 +379,30 @@ your profile, database or letters.
   is a rules violation, not an engine bug. Tell it to fix the letter, and add the item to the
   `## Never name` section of `candidates/me/profile.md` so it does not recur.
 - **Start over.** Delete `candidates/me/` and run `onboard` again. Nothing else holds state.
+
+### Windows setup problems
+
+- **`npm.ps1 cannot be loaded because running scripts is disabled on this system`.** PowerShell blocks the script shims npm installs. Run once, no admin needed:
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force`. On a managed laptop that refuses it, call
+  the `.cmd` versions instead: `npm.cmd install -g <package>`.
+- **`python` opens the Microsoft Store, or is "not recognized".** Open a new terminal after installing
+  Python. If it still happens, use the launcher (`py -m venv .venv`) or switch off the `python.exe` alias
+  under Settings > Apps > Advanced app settings > App execution aliases.
+- **`Could not open requirements file`, with a path ending in `requirements.txt.venv\Scripts\pip`.** The command was pasted
+  twice on one line (in the VS Code terminal, right-click already pastes). Run
+  `.venv\Scripts\pip install -r requirements.txt` once, by itself.
+- **`No module named pytest`.** Your checkout predates `pytest` being listed. `git pull`, then run
+  `.venv\Scripts\pip install -r requirements.txt` again.
+- **`npm error 404` when installing an agent.** The package name is mistyped; a trailing dot or space
+  copied along with it is the usual cause. Copy the command again rather than pressing the up arrow.
+- **A freshly installed command (`agy`, `npm`, `python`) works in a normal PowerShell window but not in the
+  VS Code terminal.** VS Code keeps the PATH it started with, and new terminal tabs inherit it. Close every
+  VS Code window and reopen it, or refresh the current terminal:
+  `$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")`.
+  Nothing in the engine needs VS Code; a plain PowerShell window in the repo folder is enough.
+- **`This client is no longer supported for Gemini Code Assist for individuals`.** Gemini CLI no longer
+  serves personal Google accounts (since 18 June 2026). Reinstalling or switching account will not help.
+  Use Antigravity CLI; see "Free option: Antigravity CLI".
 
 ## Privacy
 
